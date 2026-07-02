@@ -157,7 +157,7 @@ function downloadHtml(filename, content) {
   URL.revokeObjectURL(url);
 }
 
-// ── Program types & questions (same as AiProgramAssistant) ─────────────────
+// ── Program types ────────────────────────────────────────────────────────────
 const PROGRAM_TYPES = [
   { id: "motor_transfer", label: "모터 이송",       icon: "↔️",  desc: "수평·수직 이송, 왕복 동작",    seed: true },
   { id: "motor_rotation", label: "모터 회전",       icon: "🔄",  desc: "회전 제어, 속도 조절",          seed: true },
@@ -176,109 +176,247 @@ const PROGRAM_TYPES = [
   { id: "stopwatch",      label: "타이머/스톱워치", icon: "⏱️",  desc: "카운트다운·스톱워치" },
 ];
 
+// ── Questions per type ───────────────────────────────────────────────────────
+// multi: true  → 여러 개 선택 가능 (체크박스 방식, 다음 버튼으로 진행)
+// type:"input" → 텍스트 직접 입력
+// (기본)       → 하나만 선택, 선택 즉시 다음으로 이동
 const TYPE_QUESTIONS = {
   motor_transfer: [
-    { id: "direction", text: "이송 방향은 어떻게 되나요?", icon: "🔧", choices: ["수평 이송 (좌우)", "수직 이송 (상하)", "수평·수직 둘 다"] },
-    { id: "distance",  text: "이송 거리가 얼마나 되나요?", icon: "📏", type: "input", placeholder: "숫자로만 적어주세요. 예: 500mm" },
-    { id: "duration",  text: "그 거리를 이동하는 데 몇 초 걸리나요?", icon: "⏱️", type: "input", placeholder: "숫자로만 적어주세요. 예: 10초" },
-    { id: "sensor",    text: "끝에 리미트 센서가 있나요?", icon: "📡", choices: ["있어요", "없어요"] },
-    { id: "motion",    text: "이동 방식은?", icon: "↔️", choices: ["한 방향만", "왕복 운동"] },
-    { id: "estop",     text: "비상정지 버튼이 필요한가요?", icon: "🛑", choices: ["필요해요", "없어도 돼요"] },
-    { id: "accel",     text: "출발·정지 시 부드럽게 가속/감속이 필요한가요?", icon: "🎚️", choices: ["부드럽게 가속/감속", "즉시 출발/정지"] },
-    { id: "repeat",    text: "반복 동작인가요?", icon: "🔁", choices: ["한 번만", "횟수를 정해서", "계속 반복"] },
-    { id: "display",   text: "화면에서 실시간으로 보고 싶은 정보는?", icon: "🖥️", choices: ["현재 위치 · 남은 거리", "동작 상태 · 완료 횟수", "둘 다"] },
+    { id: "direction", text: "이송 방향을 모두 선택해주세요", icon: "🔧", multi: true,
+      choices: ["수평 이송 (좌우)", "수직 이송 (상하)", "회전 포함", "다축 동시 이송"] },
+    { id: "distance",  text: "이송 거리가 얼마나 되나요?", icon: "📏", type: "input", placeholder: "예: 500mm" },
+    { id: "speed",     text: "이송 속도 조건을 골라주세요", icon: "⚡", multi: true,
+      choices: ["저속 정밀 이동", "고속 이송", "속도 가변 (단계별)", "빠른 이동 후 저속 정지"] },
+    { id: "motion",    text: "동작 방식을 모두 선택해주세요", icon: "↔️", multi: true,
+      choices: ["단방향 이동", "왕복 운동", "다단계 정지 (중간 정지점)", "목표 위치 지정 이동"] },
+    { id: "sensor",    text: "필요한 센서를 모두 골라주세요", icon: "📡", multi: true,
+      choices: ["리미트 센서 (끝단 감지)", "원점 복귀 센서", "위치 피드백 (엔코더)", "과부하 감지", "센서 없음"] },
+    { id: "control",   text: "필요한 제어 기능을 골라주세요", icon: "🎛️", multi: true,
+      choices: ["비상정지 버튼", "일시정지 / 재개", "수동 조그 이동 (미세 조정)", "속도 슬라이더", "방향 전환 버튼"] },
+    { id: "accel",     text: "이동 프로파일은?", icon: "🎚️", multi: true,
+      choices: ["가속 / 감속 (부드럽게)", "즉시 출발·정지", "목표 위치 도달 확인 표시"] },
+    { id: "repeat",    text: "반복 동작 방식은?", icon: "🔁", multi: true,
+      choices: ["한 번만", "횟수 지정 반복", "연속 반복 (수동 정지)", "조건 충족 시 반복"] },
+    { id: "display",   text: "화면에 표시할 정보를 골라주세요", icon: "🖥️", multi: true,
+      choices: ["현재 위치", "남은 거리", "현재 속도", "동작 상태", "완료 횟수", "오류 메시지"] },
+    { id: "log",       text: "기록 / 저장 기능이 필요한가요?", icon: "💾", multi: true,
+      choices: ["동작 이력 저장", "오류 로그 기록", "위치 데이터 CSV 내보내기", "필요 없음"] },
   ],
   motor_rotation: [
-    { id: "speed",     text: "1회전에 몇 초 걸리나요?", icon: "⚙️", type: "input", placeholder: "숫자로만 적어주세요. 예: 3초" },
-    { id: "direction", text: "회전 방향은?", icon: "🔄", choices: ["한 방향만", "정역 전환 가능"] },
-    { id: "stop",      text: "정지 조건은?", icon: "🛑", choices: ["시간 지정", "횟수 지정", "버튼으로 수동 정지"] },
-    { id: "estop",     text: "비상정지 버튼이 필요한가요?", icon: "🚨", choices: ["필요해요", "없어도 돼요"] },
-    { id: "accel",     text: "부드럽게 가속/감속이 필요한가요?", icon: "🎚️", choices: ["부드럽게", "즉시"] },
-    { id: "repeat",    text: "반복 동작인가요?", icon: "🔁", choices: ["한 번만", "계속 반복"] },
-    { id: "display",   text: "화면에서 보고 싶은 정보는?", icon: "🖥️", choices: ["현재 속도 · 각도", "동작 상태 · 완료 횟수", "둘 다"] },
+    { id: "speed",     text: "회전 속도를 입력해주세요", icon: "⚙️", type: "input", placeholder: "예: 1회전에 3초, 또는 100 RPM" },
+    { id: "direction", text: "회전 방향 기능을 골라주세요", icon: "🔄", multi: true,
+      choices: ["한 방향만", "정역 전환 가능", "각도 지정 회전", "인덱싱 (일정 각도씩)"] },
+    { id: "stop",      text: "정지 조건을 모두 골라주세요", icon: "🛑", multi: true,
+      choices: ["시간 지정", "횟수 지정", "각도 도달 시", "버튼으로 수동 정지", "과부하 감지 시 자동 정지"] },
+    { id: "control",   text: "필요한 제어 기능을 골라주세요", icon: "🎛️", multi: true,
+      choices: ["비상정지 버튼", "일시정지 / 재개", "속도 슬라이더", "토크 제한 설정", "원점 복귀"] },
+    { id: "accel",     text: "가속 / 감속 방식은?", icon: "🎚️", multi: true,
+      choices: ["부드럽게 가속 / 감속", "즉시 출발 / 정지", "S커브 프로파일"] },
+    { id: "repeat",    text: "반복 방식은?", icon: "🔁", multi: true,
+      choices: ["한 번만", "횟수 지정 반복", "연속 반복", "주기적 반복 (인터벌)"] },
+    { id: "display",   text: "화면에 표시할 정보를 골라주세요", icon: "🖥️", multi: true,
+      choices: ["현재 RPM / 속도", "회전 각도", "동작 상태", "완료 횟수", "경과 시간"] },
+    { id: "log",       text: "기록 기능이 필요한가요?", icon: "💾", multi: true,
+      choices: ["회전 이력 저장", "속도 / 각도 로그", "CSV 내보내기", "필요 없음"] },
   ],
   sensor: [
-    { id: "target",    text: "무엇을 측정하나요?", icon: "📡", choices: ["온도 / 습도", "진동 / 소음", "압력 / 유량", "위치 / 거리"] },
-    { id: "realtime",  text: "측정값을 실시간으로 화면에 보여줘야 하나요?", icon: "📺", choices: ["실시간으로", "일정 간격마다 갱신"] },
-    { id: "save",      text: "측정 결과를 파일로 저장해야 하나요?", icon: "💾", choices: ["저장 필요", "화면에만 보여줘도 돼요"] },
-    { id: "alert",     text: "기준값을 넘으면 경고가 필요한가요?", icon: "🚨", choices: ["경고 필요", "없어도 돼요"] },
-    { id: "graph",     text: "그래프로 보여줘야 하나요?", icon: "📈", choices: ["그래프 필요", "숫자만 보여줘도 돼요"] },
+    { id: "target",    text: "측정할 대상을 모두 골라주세요", icon: "📡", multi: true,
+      choices: ["온도", "습도", "진동 / 가속도", "소음", "압력", "유량", "위치 / 거리", "전압 / 전류"] },
+    { id: "channel",   text: "채널 구성은?", icon: "🔌", multi: true,
+      choices: ["단일 채널 (1개)", "2채널 동시 측정", "4채널 이상", "채널 이름 직접 입력"] },
+    { id: "realtime",  text: "표시 방식을 골라주세요", icon: "📺", multi: true,
+      choices: ["실시간 숫자 표시", "게이지 / 미터", "실시간 그래프", "트렌드 라인"] },
+    { id: "interval",  text: "샘플링 / 갱신 주기는?", icon: "⏱️", multi: true,
+      choices: ["매 0.5초", "매 1초", "매 5초", "사용자가 직접 설정"] },
+    { id: "alert",     text: "경고 기능이 필요한가요?", icon: "🚨", multi: true,
+      choices: ["상한 초과 경고", "하한 미달 경고", "변화율 급변 경고", "소리 알림", "화면 색상 변경", "필요 없음"] },
+    { id: "graph",     text: "그래프 옵션을 골라주세요", icon: "📈", multi: true,
+      choices: ["실시간 라인 그래프", "히스토그램", "최대 / 최소 표시", "기준선 표시", "그래프 불필요"] },
+    { id: "save",      text: "기록 / 저장 기능은?", icon: "💾", multi: true,
+      choices: ["자동 저장 (주기적)", "버튼 눌러서 저장", "CSV 내보내기", "타임스탬프 포함", "필요 없음"] },
+    { id: "extra",     text: "추가 기능이 필요한가요?", icon: "✨", multi: true,
+      choices: ["통계 (평균·최대·최소)", "이동 평균 필터", "보정값 (오프셋) 설정", "멀티 채널 비교", "없음"] },
   ],
   process_timer: [
-    { id: "steps",     text: "몇 단계로 이루어지나요?", icon: "🔢", choices: ["2~3단계 (간단)", "4단계 이상 (복잡)"] },
-    { id: "steptime",  text: "각 단계의 시간을 직접 입력할 수 있어야 하나요?", icon: "⏱️", choices: ["네, 입력 가능", "고정값으로 설정"] },
-    { id: "auto",      text: "단계가 끝나면 자동으로 다음으로 넘어가나요?", icon: "⏭️", choices: ["자동으로", "버튼 눌러야 넘어가요"] },
-    { id: "repeat",    text: "전체를 반복해야 하나요?", icon: "🔁", choices: ["한 번만", "계속 반복"] },
-    { id: "pause",     text: "중간에 일시정지가 필요한가요?", icon: "⏸️", choices: ["필요해요", "없어도 돼요"] },
-    { id: "display",   text: "화면에서 보고 싶은 정보는?", icon: "🖥️", choices: ["현재 단계 · 남은 시간", "전체 진행 상태", "둘 다"] },
+    { id: "steps",     text: "공정 단계 수는?", icon: "🔢",
+      choices: ["2~3단계 (간단)", "4~6단계 (중간)", "7단계 이상 (복잡)"] },
+    { id: "step_cfg",  text: "각 단계 설정 항목을 골라주세요", icon: "⚙️", multi: true,
+      choices: ["단계 이름 입력", "시간 직접 입력", "단계 설명 입력", "색상 구분", "담당자 지정"] },
+    { id: "flow",      text: "단계 진행 방식은?", icon: "⏭️", multi: true,
+      choices: ["시간 완료 시 자동 진행", "버튼 눌러야 다음 단계", "조건 충족 시 진행", "병렬 단계 동시 진행"] },
+    { id: "control",   text: "제어 기능을 골라주세요", icon: "🎛️", multi: true,
+      choices: ["일시정지 / 재개", "현재 단계 리셋", "전체 리셋", "단계 건너뛰기", "비상정지"] },
+    { id: "repeat",    text: "반복 방식은?", icon: "🔁", multi: true,
+      choices: ["한 번만", "횟수 지정 반복", "연속 반복 (수동 정지)", "특정 단계만 반복"] },
+    { id: "alert",     text: "알림 기능이 필요한가요?", icon: "🔔", multi: true,
+      choices: ["단계 완료 알림", "전체 공정 완료 알림", "시간 초과 경고", "소리 알림", "필요 없음"] },
+    { id: "display",   text: "화면에 표시할 정보를 골라주세요", icon: "🖥️", multi: true,
+      choices: ["현재 단계 표시", "남은 시간", "전체 진행률 (프로그레스바)", "완료된 단계 목록", "경과 시간"] },
+    { id: "log",       text: "기록 기능이 필요한가요?", icon: "💾", multi: true,
+      choices: ["공정 이력 저장", "단계별 실제 소요 시간", "파일로 저장", "필요 없음"] },
   ],
   data_record: [
-    { id: "target",    text: "무엇을 기록하나요?", icon: "📋", choices: ["장비·부품 관리", "작업 이력 · 일지", "측정값 기록"] },
-    { id: "save",      text: "나중에 불러와서 수정할 수 있어야 하나요?", icon: "💾", choices: ["저장·불러오기 필요", "그날그날 보기만"] },
-    { id: "search",    text: "검색이나 필터 기능이 필요한가요?", icon: "🔍", choices: ["날짜·이름으로 검색", "없어도 돼요"] },
-    { id: "export",    text: "출력(프린트)이나 파일 내보내기가 필요한가요?", icon: "🖨️", choices: ["필요해요", "필요 없어요"] },
+    { id: "target",    text: "무엇을 기록하나요? 모두 골라주세요", icon: "📋", multi: true,
+      choices: ["장비 / 설비 관리", "작업 이력 · 일지", "측정값 기록", "불량 / 이상 기록", "유지보수 이력", "재료 사용 기록"] },
+    { id: "fields",    text: "기록할 항목을 골라주세요", icon: "📝", multi: true,
+      choices: ["날짜 / 시간 (자동)", "작업자 / 담당자", "장비명 / 품목명", "수량 / 값", "상태 (정상 / 불량)", "메모 / 비고", "사진 첨부"] },
+    { id: "input",     text: "입력 방식을 골라주세요", icon: "✏️", multi: true,
+      choices: ["직접 텍스트 입력", "드롭다운 선택", "체크박스", "날짜 피커", "숫자 입력"] },
+    { id: "manage",    text: "관리 기능을 골라주세요", icon: "🗂️", multi: true,
+      choices: ["저장 / 불러오기", "기록 수정", "기록 삭제", "복사 / 복제"] },
+    { id: "search",    text: "검색 / 필터 기능이 필요한가요?", icon: "🔍", multi: true,
+      choices: ["날짜 범위 검색", "키워드 검색", "상태 필터", "담당자 필터", "필요 없음"] },
+    { id: "stats",     text: "통계 기능이 필요한가요?", icon: "📊", multi: true,
+      choices: ["건수 집계", "기간별 통계", "그래프 시각화", "요약 대시보드", "필요 없음"] },
+    { id: "export",    text: "출력 / 내보내기 기능은?", icon: "🖨️", multi: true,
+      choices: ["인쇄 (프린트)", "CSV 내보내기", "보고서 형태 출력", "필요 없음"] },
   ],
   inventory: [
-    { id: "target",    text: "무엇을 관리하나요?", icon: "🗃️", choices: ["부품 · 소모품", "장비 · 기기", "둘 다"] },
-    { id: "history",   text: "입출고 이력을 추적해야 하나요?", icon: "📋", choices: ["이력 추적", "현재 수량만"] },
-    { id: "alert",     text: "재고 부족 경고가 필요한가요?", icon: "⚠️", choices: ["필요해요", "없어도 돼요"] },
-    { id: "export",    text: "목록 출력이나 파일 내보내기가 필요한가요?", icon: "🖨️", choices: ["필요해요", "필요 없어요"] },
+    { id: "target",    text: "관리할 대상을 모두 골라주세요", icon: "🗃️", multi: true,
+      choices: ["소모품 (나사·패킹 등)", "부품 / 교체 부품", "장비 / 기기", "공구 / 치공구", "원자재 / 재료"] },
+    { id: "fields",    text: "관리할 항목을 골라주세요", icon: "📝", multi: true,
+      choices: ["품번 / 코드", "품명 / 규격", "현재 수량", "보관 위치", "단가 / 금액", "공급업체", "최소 재고량", "유효기간"] },
+    { id: "transaction", text: "트랜잭션 기능을 골라주세요", icon: "🔄", multi: true,
+      choices: ["입고 처리", "출고 처리", "재고 조정", "위치 이동 기록"] },
+    { id: "alert",     text: "알림 기능이 필요한가요?", icon: "⚠️", multi: true,
+      choices: ["재고 부족 경고 (최소 재고 이하)", "유통기한 / 점검 기한 경고", "재고 0 표시", "필요 없음"] },
+    { id: "search",    text: "검색 / 필터는?", icon: "🔍", multi: true,
+      choices: ["품번 / 이름 검색", "위치 검색", "카테고리 필터", "재고 부족만 보기", "필요 없음"] },
+    { id: "history",   text: "이력 관리가 필요한가요?", icon: "📋", multi: true,
+      choices: ["입출고 이력 전체 보기", "날짜별 이력", "담당자별 이력", "필요 없음"] },
+    { id: "export",    text: "출력 / 내보내기 기능은?", icon: "🖨️", multi: true,
+      choices: ["재고 현황 인쇄", "CSV 내보내기", "발주 목록 출력", "필요 없음"] },
   ],
   lab_diary: [
-    { id: "fields",    text: "기록할 항목은?", icon: "📓", choices: ["날짜·실험자·조건·결과 (기본)", "추가 항목 있음"] },
-    { id: "search",    text: "날짜나 키워드로 검색이 필요한가요?", icon: "🔍", choices: ["검색 필요", "없어도 돼요"] },
-    { id: "export",    text: "출력이나 파일 내보내기가 필요한가요?", icon: "🖨️", choices: ["필요해요", "필요 없어요"] },
+    { id: "fields",    text: "기록할 항목을 모두 골라주세요", icon: "📓", multi: true,
+      choices: ["날짜 / 시간", "실험자 / 작성자", "실험 조건 (온도·압력 등)", "실험 결과", "분석 / 해석", "다음 계획", "메모 / 특이사항", "사진 첨부"] },
+    { id: "manage",    text: "관리 기능을 골라주세요", icon: "🗂️", multi: true,
+      choices: ["저장 / 불러오기", "기록 수정", "기록 삭제", "복사 / 템플릿화", "태그 분류"] },
+    { id: "search",    text: "검색 / 필터 기능이 필요한가요?", icon: "🔍", multi: true,
+      choices: ["날짜 범위 검색", "키워드 검색", "실험자 검색", "조건값 필터", "필요 없음"] },
+    { id: "view",      text: "화면 표시 방식은?", icon: "👁️", multi: true,
+      choices: ["목록형 (테이블)", "카드형", "달력형 (날짜별)", "상세 보기"] },
+    { id: "stats",     text: "통계 기능이 필요한가요?", icon: "📊", multi: true,
+      choices: ["실험 횟수 집계", "성공 / 실패율", "기간별 통계", "그래프 시각화", "필요 없음"] },
+    { id: "export",    text: "출력 / 내보내기 기능은?", icon: "🖨️", multi: true,
+      choices: ["인쇄", "CSV 내보내기", "보고서 형태", "필요 없음"] },
   ],
   calculator: [
-    { id: "purpose",   text: "어떤 계산이 필요한가요? 짧게 적어주세요.", icon: "🔢", type: "input", placeholder: "예: 모터 토크 계산" },
-    { id: "save",      text: "계산 결과를 저장하거나 비교해야 하나요?", icon: "💾", choices: ["저장·비교 필요", "그때그때 계산만"] },
-    { id: "steps",     text: "계산 과정(중간 값)도 보여줘야 하나요?", icon: "📐", choices: ["단계별로 보여줘요", "최종 결과만"] },
+    { id: "purpose",   text: "어떤 계산이 필요한가요? 짧게 적어주세요", icon: "🔢", type: "input", placeholder: "예: 모터 토크 계산, 열전달 계산, 보 처짐 계산" },
+    { id: "vars",      text: "입력 변수 수는 대략 얼마나 되나요?", icon: "📥",
+      choices: ["2~3개 (간단)", "4~6개 (중간)", "7개 이상 (복잡)"] },
+    { id: "method",    text: "계산 방식을 골라주세요", icon: "⚙️", multi: true,
+      choices: ["단일 공식 계산", "단계별 순서 계산", "조건 분기 계산 (if/else)", "반복 계산 (루프)", "표 조회 (룩업 테이블)"] },
+    { id: "display",   text: "결과 표시 방식을 골라주세요", icon: "📊", multi: true,
+      choices: ["최종 결과만", "중간 계산값 표시", "수식 / 공식 설명", "단위 자동 표시", "합격 / 불합격 판정"] },
+    { id: "extra",     text: "추가 기능이 필요한가요?", icon: "✨", multi: true,
+      choices: ["결과 저장 / 불러오기", "여러 케이스 비교", "그래프로 시각화", "결과 복사 버튼", "단위 자동 변환", "없음"] },
+    { id: "input_help", text: "입력 도움 기능이 필요한가요?", icon: "💡", multi: true,
+      choices: ["입력 범위 검증 (경고)", "기본값 제공", "힌트 / 설명 표시", "없음"] },
   ],
   data_analysis: [
-    { id: "input",     text: "데이터를 어떻게 입력하나요?", icon: "📥", choices: ["파일 불러오기 (CSV 등)", "직접 숫자 입력"] },
-    { id: "method",    text: "어떤 분석이 필요한가요?", icon: "🔢", choices: ["통계 (평균·최대·최소·표준편차)", "주파수 분석 (FFT)", "둘 다"] },
-    { id: "graph",     text: "분석 결과를 그래프로 보여줘야 하나요?", icon: "📈", choices: ["그래프 필수", "숫자(표)만"] },
-    { id: "save",      text: "결과를 파일로 저장하거나 내보내야 하나요?", icon: "💾", choices: ["저장 필요", "화면에서 보기만"] },
+    { id: "input",     text: "데이터 입력 방식을 골라주세요", icon: "📥", multi: true,
+      choices: ["CSV 파일 불러오기", "엑셀 파일 붙여넣기", "직접 숫자 입력", "텍스트 붙여넣기"] },
+    { id: "method",    text: "필요한 분석 방법을 모두 골라주세요", icon: "🔢", multi: true,
+      choices: ["기초 통계 (평균·최대·최소·표준편차)", "FFT 주파수 분석", "트렌드 분석 (회귀)", "이상값 탐지", "상관 분석", "이동 평균"] },
+    { id: "stats",     text: "통계 항목을 골라주세요", icon: "📐", multi: true,
+      choices: ["평균 / 중앙값", "최대 / 최솟값", "표준편차 / 분산", "분위수 (25·75%)", "상관계수", "필요 없음"] },
+    { id: "process",   text: "데이터 처리 기능이 필요한가요?", icon: "⚙️", multi: true,
+      choices: ["이상값 제거 / 표시", "이동 평균 필터", "노이즈 제거", "데이터 정규화", "없음"] },
+    { id: "graph",     text: "시각화 방식을 골라주세요", icon: "📈", multi: true,
+      choices: ["시계열 라인 그래프", "히스토그램", "산점도 (X-Y 플롯)", "박스 플롯", "FFT 스펙트럼 그래프", "없음"] },
+    { id: "export",    text: "결과 저장 / 출력이 필요한가요?", icon: "💾", multi: true,
+      choices: ["분석 결과 CSV 저장", "그래프 이미지 저장", "보고서 출력", "필요 없음"] },
   ],
   spectrum: [
-    { id: "input",     text: "데이터 형식은?", icon: "📥", choices: ["CSV · 텍스트 파일", "직접 숫자 입력"] },
-    { id: "display",   text: "표시 방식은?", icon: "🌈", choices: ["파장 vs 강도 그래프", "주파수 스펙트럼", "둘 다"] },
-    { id: "peak",      text: "피크(최대값) 검출 기능이 필요한가요?", icon: "📌", choices: ["자동 피크 탐색", "수동 마커", "없어도 돼요"] },
-    { id: "save",      text: "결과를 저장해야 하나요?", icon: "💾", choices: ["저장 필요", "화면에서 보기만"] },
+    { id: "input",     text: "데이터 형식을 골라주세요", icon: "📥", multi: true,
+      choices: ["CSV 파일", "텍스트 파일", "직접 숫자 입력", "붙여넣기"] },
+    { id: "display",   text: "표시 방식을 골라주세요", icon: "🌈", multi: true,
+      choices: ["파장 vs 강도 그래프", "주파수 스펙트럼", "3D 표면 플롯", "워터폴 차트"] },
+    { id: "analysis",  text: "분석 기능을 골라주세요", icon: "🔬", multi: true,
+      choices: ["피크 자동 탐색", "수동 마커 추가", "배경 제거 (베이스라인)", "데이터 정규화", "평균화 / 스무딩"] },
+    { id: "compare",   text: "비교 기능이 필요한가요?", icon: "⚖️", multi: true,
+      choices: ["기준 스펙트럼과 비교", "여러 데이터 오버레이", "차분 계산", "필요 없음"] },
+    { id: "export",    text: "출력 / 저장이 필요한가요?", icon: "💾", multi: true,
+      choices: ["피크 목록 CSV 저장", "그래프 이미지 저장", "보고서 출력", "필요 없음"] },
   ],
   unit_convert: [
-    { id: "type",      text: "어떤 변환이 필요한가요?", icon: "⚖️", choices: ["물리 단위 (mm↔inch, N↔kgf 등)", "좌표계 변환", "데이터 형식 변환"] },
-    { id: "batch",     text: "여러 항목을 한꺼번에 변환해야 하나요?", icon: "📋", choices: ["목록으로 한꺼번에", "하나씩 입력해서"] },
-    { id: "save",      text: "자주 쓰는 변환식을 저장해놔야 하나요?", icon: "💾", choices: ["즐겨찾기 저장", "없어도 돼요"] },
+    { id: "type",      text: "변환이 필요한 단위를 모두 골라주세요", icon: "⚖️", multi: true,
+      choices: ["길이 (mm ↔ inch 등)", "질량 / 무게 (kg ↔ lb 등)", "힘 (N ↔ kgf ↔ lbf)", "토크 (N·m ↔ kgf·cm)", "압력 (Pa ↔ bar ↔ psi)", "온도 (℃ ↔ ℉ ↔ K)", "속도 (m/s ↔ rpm 등)", "각도 (° ↔ rad ↔ rev)"] },
+    { id: "extra",     text: "추가 변환이 필요한가요?", icon: "🔄", multi: true,
+      choices: ["좌표계 변환 (직교 ↔ 극)", "데이터 형식 변환 (진수)", "전력 (W ↔ HP)", "없음"] },
+    { id: "batch",     text: "입력 방식은?", icon: "📋", multi: true,
+      choices: ["하나씩 개별 변환", "목록 일괄 변환", "수식 직접 입력"] },
+    { id: "save",      text: "저장 기능이 필요한가요?", icon: "💾", multi: true,
+      choices: ["자주 쓰는 변환 즐겨찾기", "변환 이력 보기", "필요 없음"] },
+    { id: "extra_ui",  text: "표시 옵션을 골라주세요", icon: "🖥️", multi: true,
+      choices: ["변환 공식 표시", "단위 설명 / 정의", "소수점 자릿수 설정", "복사 버튼"] },
   ],
   compare: [
-    { id: "target",    text: "무엇을 비교하나요?", icon: "⚖️", choices: ["측정값 vs 기준값", "두 실험 결과끼리"] },
-    { id: "verdict",   text: "합격/불합격 자동 판정이 필요한가요?", icon: "✅", choices: ["자동 판정", "값만 표시"] },
-    { id: "tolerance", text: "허용 오차(±)를 직접 입력할 수 있어야 하나요?", icon: "🎯", choices: ["입력 가능", "고정값으로"] },
-    { id: "multi",     text: "여러 항목을 동시에 비교해야 하나요?", icon: "📋", choices: ["항목이 여러 개", "하나씩 비교"] },
+    { id: "target",    text: "무엇을 비교하나요? 모두 골라주세요", icon: "⚖️", multi: true,
+      choices: ["측정값 vs 기준값 (규격)", "두 실험 결과끼리", "여러 샘플 동시 비교", "전후 비교 (Before / After)"] },
+    { id: "items",     text: "비교 항목 구성은?", icon: "📋", multi: true,
+      choices: ["단일 항목", "여러 항목 동시 비교", "가중치별 항목", "계층 구조 항목"] },
+    { id: "verdict",   text: "판정 기능을 골라주세요", icon: "✅", multi: true,
+      choices: ["합격 / 불합격 자동 판정", "허용 오차 (±) 직접 설정", "상대 오차 (%) 기준", "가중치 점수 판정", "값만 표시 (판정 없음)"] },
+    { id: "visual",    text: "시각화 방식을 골라주세요", icon: "📊", multi: true,
+      choices: ["수치 비교 표", "편차 막대 그래프", "레이더 차트", "색상으로 합불 표시", "없음"] },
+    { id: "extra",     text: "추가 기능이 필요한가요?", icon: "✨", multi: true,
+      choices: ["비교 결과 저장", "기준값 관리 (여러 규격)", "통계 요약", "없음"] },
+    { id: "export",    text: "출력 / 내보내기가 필요한가요?", icon: "🖨️", multi: true,
+      choices: ["판정 결과 인쇄", "CSV 내보내기", "보고서 생성", "필요 없음"] },
   ],
   recipe: [
-    { id: "save",      text: "실험 조건을 저장하고 나중에 불러와야 하나요?", icon: "💾", choices: ["저장·불러오기 필수", "매번 새로 입력"] },
-    { id: "list",      text: "여러 조건을 목록으로 관리해야 하나요?", icon: "📋", choices: ["여러 레시피 목록", "하나만 저장"] },
-    { id: "result",    text: "조건별로 결과도 같이 기록해야 하나요?", icon: "📊", choices: ["조건+결과 세트로", "조건만 관리"] },
+    { id: "params",    text: "관리할 파라미터를 모두 골라주세요", icon: "🧪", multi: true,
+      choices: ["온도", "압력", "시간", "속도", "농도", "전압 / 전류", "유량", "기타 숫자값"] },
+    { id: "manage",    text: "레시피 관리 기능을 골라주세요", icon: "🗂️", multi: true,
+      choices: ["레시피 저장", "레시피 불러오기", "복사 / 편집", "삭제", "이름 / 태그 붙이기"] },
+    { id: "result",    text: "결과 연동이 필요한가요?", icon: "📊", multi: true,
+      choices: ["조건 + 결과 세트로 저장", "성공 / 실패 표시", "점수 / 평가 기록", "결과 그래프", "없음"] },
+    { id: "search",    text: "검색 기능이 필요한가요?", icon: "🔍", multi: true,
+      choices: ["이름 / 태그 검색", "파라미터값 검색", "결과 기반 검색", "없음"] },
+    { id: "compare",   text: "레시피 비교 기능이 필요한가요?", icon: "⚖️", multi: true,
+      choices: ["레시피 간 파라미터 비교", "최적 조건 표시", "없음"] },
+    { id: "export",    text: "출력 / 내보내기가 필요한가요?", icon: "🖨️", multi: true,
+      choices: ["조건표 인쇄", "CSV 내보내기", "공유용 파일 저장", "필요 없음"] },
   ],
   report: [
-    { id: "format",    text: "어떤 형태로 정리해야 하나요?", icon: "📄", choices: ["표 형식", "그래프 포함 보고서", "둘 다"] },
-    { id: "print",     text: "출력(프린트)이 필요한가요?", icon: "🖨️", choices: ["인쇄용으로", "화면에서만"] },
-    { id: "multi",     text: "여러 실험 결과를 한 번에 정리해야 하나요?", icon: "📚", choices: ["한 장에 여러 결과", "하나씩 따로"] },
-    { id: "meta",      text: "날짜, 작성자 같은 기본 정보도 넣어야 하나요?", icon: "🏷️", choices: ["포함해요", "없어도 돼요"] },
+    { id: "structure", text: "보고서 구성 항목을 골라주세요", icon: "📄", multi: true,
+      choices: ["표지 (제목 · 날짜 · 작성자)", "목차", "요약 / 결론 요약", "본문 내용", "결론 / 제언", "첨부 자료"] },
+    { id: "content",   text: "포함할 내용을 모두 골라주세요", icon: "📝", multi: true,
+      choices: ["실험 정보 (조건·환경)", "측정 데이터 표", "그래프 / 차트", "사진 / 이미지", "분석 결과", "비교 결과"] },
+    { id: "format",    text: "보고서 형식을 골라주세요", icon: "🎨", multi: true,
+      choices: ["표 중심 형식", "그래프 포함 형식", "기술 문서 형식", "발표용 (큰 글씨)"] },
+    { id: "auto",      text: "자동 채우기 기능이 필요한가요?", icon: "⚡", multi: true,
+      choices: ["날짜 자동 입력", "작성자 기억", "보고서 번호 자동 생성", "없음"] },
+    { id: "multi",     text: "여러 결과 정리 방식은?", icon: "📚", multi: true,
+      choices: ["한 장에 여러 결과", "결과별 개별 페이지", "비교 표로 정리", "하나씩만"] },
+    { id: "export",    text: "출력 / 저장 방식은?", icon: "🖨️", multi: true,
+      choices: ["인쇄 (프린트)", "HTML 파일로 저장", "화면에서만 확인"] },
   ],
   stopwatch: [
-    { id: "type",      text: "어떤 기능이 필요한가요?", icon: "⏱️", choices: ["카운트다운 타이머", "스톱워치", "둘 다"] },
-    { id: "alert",     text: "시간 완료 시 알림이 필요한가요?", icon: "🔔", choices: ["소리·시각 알림", "없어도 돼요"] },
-    { id: "multi",     text: "여러 타이머를 동시에 사용해야 하나요?", icon: "⏲️", choices: ["여러 개 동시에", "하나만"] },
+    { id: "type",      text: "필요한 기능을 모두 골라주세요", icon: "⏱️", multi: true,
+      choices: ["카운트다운 타이머", "스톱워치 (카운트업)", "인터벌 타이머 (반복)", "랩 타임 기록"] },
+    { id: "display",   text: "표시 방식을 골라주세요", icon: "🖥️", multi: true,
+      choices: ["시 : 분 : 초", "밀리초까지 표시", "진행률 바 (프로그레스)", "큰 화면 모드"] },
+    { id: "alert",     text: "알림 기능이 필요한가요?", icon: "🔔", multi: true,
+      choices: ["소리 알림 (완료 시)", "시각 알림 (색상 변경)", "중간 알림 (n초마다)", "없음"] },
+    { id: "multi",     text: "동시 사용 타이머 수는?", icon: "⏲️", multi: true,
+      choices: ["하나만", "2개 동시", "여러 개 동시 (탭 전환)", "이름 붙이기 가능"] },
+    { id: "extra",     text: "추가 기능이 필요한가요?", icon: "✨", multi: true,
+      choices: ["자동 반복 (완료 후 재시작)", "카운트업 (타임아웃 후 계속)", "랩 목록 저장", "CSV 내보내기", "없음"] },
   ],
 };
 
+// ── Spec compiler ─────────────────────────────────────────────────────────────
 function compileWizardSpec(type, answers, extraNotes) {
   const q = TYPE_QUESTIONS[type.id] || [];
   const answered = q
-    .map(qItem => ({ label: qItem.text.replace(/[?？]$/, ""), value: answers[qItem.id] }))
+    .map(qItem => {
+      const val = answers[qItem.id];
+      const displayVal = Array.isArray(val) ? val.join(", ") : val;
+      return { label: qItem.text.replace(/[?？]$/, ""), value: displayVal };
+    })
     .filter(item => item.value);
   const half = Math.ceil(answered.length / 2);
   const fmt = items => items.map(i => `${i.label}: ${i.value}`).join("\n");
@@ -306,9 +444,8 @@ function saveHistory(entries) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
 }
 
-// ── Main Component ──────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function ProgramDesigner({ onBack }) {
-  // phases: typepick | wizard_qa | confirm | generating | done | history
   const [phase, setPhase] = useState("typepick");
   const [selectedType, setSelectedType] = useState(null);
   const [wizardStep, setWizardStep] = useState(0);
@@ -341,9 +478,22 @@ export default function ProgramDesigner({ onBack }) {
     setPhase("wizard_qa");
   }
 
+  // 단일 선택: 선택 즉시 다음 질문으로 이동
   function handleWizardChoice(qId, choice) {
     const newAnswers = { ...wizardAnswers, [qId]: choice };
     setWizardAnswers(newAnswers);
+    advanceWizard();
+  }
+
+  // 멀티 선택: 토글만 하고 이동하지 않음
+  function handleMultiToggle(qId, choice) {
+    const prev = Array.isArray(wizardAnswers[qId]) ? wizardAnswers[qId] : [];
+    const next = prev.includes(choice) ? prev.filter(x => x !== choice) : [...prev, choice];
+    setWizardAnswers({ ...wizardAnswers, [qId]: next });
+  }
+
+  // 다음 질문으로 이동 (멀티 선택 후 "다음" 버튼 또는 단일 선택 즉시)
+  function advanceWizard() {
     const questions = TYPE_QUESTIONS[selectedType.id];
     if (wizardStep + 1 >= questions.length) {
       setWizardShowExtra(true);
@@ -360,7 +510,6 @@ export default function ProgramDesigner({ onBack }) {
 
   function handleWizardFinish() {
     const compiled = compileWizardSpec(selectedType, wizardAnswers, extraNotes);
-    // setTimeout prevents phantom click on confirm's generate button (same y-position as finish btn)
     setTimeout(() => {
       setSpec(compiled);
       setPhase("confirm");
@@ -489,6 +638,14 @@ export default function ProgramDesigner({ onBack }) {
       {/* ── 유형 선택 ── */}
       {phase === "typepick" && (
         <div className="ai-typepick">
+          <div className="ai-guide-card">
+            <h3>프로그램 설계소 사용법</h3>
+            <ul>
+              <li><strong>1. 유형 선택</strong> — 만들고 싶은 프로그램 유형을 아래에서 고릅니다.</li>
+              <li><strong>2. 질문에 답하기</strong> — 원하는 기능을 여러 개 골라주세요. 더 구체적일수록 완성도가 높아져요.</li>
+              <li><strong>3. 다운로드</strong> — 완성된 HTML 프로그램이 바로 다운로드됩니다.</li>
+            </ul>
+          </div>
           <p className="ai-typepick-title">어떤 프로그램을 만들고 싶으신가요?</p>
           <div style={{ display: "flex", gap: "10px", marginBottom: "12px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "0.78rem", color: "#7b7f93" }}>✅ 완성형 — 바로 사용 가능</span>
@@ -514,6 +671,8 @@ export default function ProgramDesigner({ onBack }) {
         const questions = TYPE_QUESTIONS[selectedType.id] || [];
         const currentQ = questions[wizardStep];
         const pct = Math.round((wizardStep / questions.length) * 100);
+        const multiSelected = Array.isArray(wizardAnswers[currentQ?.id]) ? wizardAnswers[currentQ.id] : [];
+
         return (
           <div className="ai-wizard-qa">
             <div className="ai-wizard-header">
@@ -527,11 +686,14 @@ export default function ProgramDesigner({ onBack }) {
             <p className="ai-wizard-progress-text">
               {wizardShowExtra ? "완료!" : `${wizardStep + 1} / ${questions.length}`}
             </p>
+
             {!wizardShowExtra && currentQ && (
               <div className="ai-wizard-question">
                 <p className="ai-wizard-q-icon">{currentQ.icon}</p>
                 <p className="ai-wizard-q-text">{currentQ.text}</p>
-                {currentQ.type === "input" ? (
+
+                {/* 텍스트 입력 */}
+                {currentQ.type === "input" && (
                   <div className="ai-wizard-input-row">
                     <input
                       className="ai-wizard-text-input"
@@ -547,7 +709,43 @@ export default function ProgramDesigner({ onBack }) {
                       }}
                     >확인 →</button>
                   </div>
-                ) : (
+                )}
+
+                {/* 멀티 선택 (체크박스 방식) */}
+                {currentQ.multi && (
+                  <div style={{ width: "100%" }}>
+                    <p className="ai-wizard-q-sub">여러 개 선택 가능 · 해당 없으면 건너뛰기</p>
+                    <div className="ai-wizard-multiselect">
+                      {currentQ.choices.map((c, ci) => {
+                        const isOn = multiSelected.includes(c);
+                        return (
+                          <button
+                            key={ci}
+                            className={`ai-wizard-check-item${isOn ? " ai-wizard-check-item--on" : ""}`}
+                            onClick={() => handleMultiToggle(currentQ.id, c)}
+                          >
+                            <span className="ai-wizard-check-icon">{isOn ? "✓" : ""}</span>
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="ai-wizard-multi-footer">
+                      <span className="ai-wizard-selected-count">
+                        {multiSelected.length > 0 ? `${multiSelected.length}개 선택됨` : "선택 없음"}
+                      </span>
+                      <button
+                        className="ai-wizard-confirm-btn"
+                        onClick={advanceWizard}
+                      >
+                        다음 →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 단일 선택 (선택 즉시 이동) */}
+                {!currentQ.type && !currentQ.multi && (
                   <div className="ai-wizard-choices">
                     {currentQ.choices.map((c, ci) => (
                       <button
@@ -555,7 +753,7 @@ export default function ProgramDesigner({ onBack }) {
                         className={`ai-wizard-choice${wizardAnswers[currentQ.id] === c ? " ai-wizard-choice--selected" : ""}`}
                         onClick={() => handleWizardChoice(currentQ.id, c)}
                       >
-                        <span className="ai-wizard-choice-num">{"①②③".charAt(ci)}</span>
+                        <span className="ai-wizard-choice-num">{"①②③④".charAt(ci)}</span>
                         {c}
                       </button>
                     ))}
@@ -563,6 +761,7 @@ export default function ProgramDesigner({ onBack }) {
                 )}
               </div>
             )}
+
             {wizardShowExtra && (
               <div className="ai-wizard-extra">
                 <p className="ai-wizard-q-icon">💬</p>
