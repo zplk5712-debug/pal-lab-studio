@@ -29,7 +29,13 @@ const SimulatorResultPanel = memo(function SimulatorResultPanel({
 }) {
   if (!result) {
     return (
-      <div className="empty-box">
+      <div className="empty-box empty-box--guide">
+        <h3>빠른 입력 가이드</h3>
+        <ul>
+          <li>처음에는 이동 방향, 하중, 이송 거리, 속도 또는 목표 시간만 넣으면 됩니다.</li>
+          <li>기본값은 전체 회사 비교이며, 볼스크류와 LM가이드도 자동 추천됩니다.</li>
+          <li>속도는 정속과 가변속 중에서 바로 선택할 수 있고, 상세 모드에서는 회사·환경·정밀도·수동 나사 조건을 더 조정합니다.</li>
+        </ul>
         <p>입력값을 넣고 계산하면 최적 모델과 최선 모델, 비교 후보 상세와 구동계 패키지가 표시됩니다.</p>
       </div>
     );

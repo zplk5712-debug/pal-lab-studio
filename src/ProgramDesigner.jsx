@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TEMPLATE_MAP, wrapTemplate, TYPE_META, SEED_TYPES } from "./programTemplates";
+import { TEMPLATE_MAP, wrapTemplate, TYPE_META } from "./programTemplates";
 
 // ── CSS injected into generated HTML files ──────────────────────────────────
 const BASE_CSS = `
@@ -86,7 +86,6 @@ function injectInstructions(html, spec) {
   const tid = spec._typeId || "";
   const meta = TYPE_META[tid] || {};
   const isSeed = !!meta.seed;
-  const kindLabel = isSeed ? "🌱 씨앗형 (시뮬레이션 데모)" : "✅ 완성형";
   const limLines = (meta.limits  || ["브라우저 내에서만 동작"]).map(l => `  ✗ ${l}`).join("\n");
   const n1Lines  = (meta.nexts1  || []).map(n => `  → ${n}`).join("\n");
   const n2Lines  = (meta.nexts2  || []).map(n => `  → ${n}`).join("\n");
@@ -94,9 +93,7 @@ function injectInstructions(html, spec) {
   const p1 = meta.prompt1 || "이 HTML에 기능을 추가해줘. 단일 HTML 파일로 유지해줘.";
   const p2 = meta.prompt2 || "이 HTML 스펙으로 완성형 프로그램을 HTML/CSS/JS/server.js로 분리해서 만들어줘.";
   const p3 = meta.prompt3 || "고급 기능까지 포함한 완성형 프로그램을 만들어줘.";
-  const seedNote = isSeed
-    ? `\n━━━━━━━━ 하드웨어 연동 안내 ━━━━━━━━\n  이 프로그램은 시뮬레이션 데모입니다.\n  실제 하드웨어(모터, PLC, 센서 등) 연동은 아래 AI 도구로\n  대화만으로 프로그램을 만들 수 있어요!\n`
-    : "";
+  const protoNote = `\n━━━━━━━━ 안내 ━━━━━━━━\n  이 프로그램은 완성된 최종본이 아니라 프로토타입입니다.\n  실제 서버 연동·데이터 영구 저장·하드웨어 제어 등은 아래 AI 도구로\n  대화만으로 완성할 수 있어요!\n`;
   const comment = `<!--
 ╔══════════════════════════════════════════════════════════╗
 ║               프로그램 설계소                            ║
@@ -104,7 +101,7 @@ function injectInstructions(html, spec) {
 
 [ 프로그램 정보 ]
   프로그램명 : ${spec.name}
-  유형       : ${spec._type || ""} ${kindLabel}
+  유형       : ${spec._type || ""}
   목적       : ${spec.purpose}
   생성일     : ${date}
 
@@ -113,7 +110,7 @@ ${spec._detail || ""}
 
 [ 현재 한계점 ]
 ${limLines}
-${seedNote}
+${protoNote}
 [ 업그레이드 명령어 — Claude / ChatGPT 대화창에 이 파일을 업로드하고 아래 명령어를 복사해서 전송하세요 ]
 
   🥇 1단계 — 지금 바로 개선 가능 (추가 설치 없이 AI 대화만으로):
@@ -129,7 +126,7 @@ ${n3Lines}
   명령어: "${p3}"
 
 [ 하드웨어 확장 고려사항 ]
-${isSeed ? `  이 프로그램은 시뮬레이션 전용입니다.\n  실제 장비 연동 시 아래 프로토콜 중 선택:\n  - Modbus RTU / Modbus TCP (산업용 모터·PLC)\n  - EtherCAT (고속 다축 제어)\n  - 시리얼 통신 RS-232 / RS-485\n  - 엔코더 피드백 연동 가능` : `  이 프로그램은 완성형으로 바로 사용 가능합니다.\n  서버 연동 시 Node.js + SQLite / PostgreSQL 권장`}
+${isSeed ? `  실제 장비 연동 시 아래 프로토콜 중 선택:\n  - Modbus RTU / Modbus TCP (산업용 모터·PLC)\n  - EtherCAT (고속 다축 제어)\n  - 시리얼 통신 RS-232 / RS-485\n  - 엔코더 피드백 연동 가능` : `  서버 연동이 필요하면 Node.js + SQLite / PostgreSQL을 권장합니다.`}
 
 [ 재생성 규칙 ]
   - 한국어 UI 유지
@@ -643,23 +640,22 @@ export default function ProgramDesigner({ onBack }) {
             <ul>
               <li><strong>1. 유형 선택</strong> — 만들고 싶은 프로그램 유형을 아래에서 고릅니다.</li>
               <li><strong>2. 질문에 답하기</strong> — 원하는 기능을 여러 개 골라주세요. 더 구체적일수록 완성도가 높아져요.</li>
-              <li><strong>3. 다운로드</strong> — 완성된 HTML 프로그램이 바로 다운로드됩니다.</li>
+              <li><strong>3. 다운로드</strong> — 바로 실행되는 HTML 프로그램이 다운로드됩니다.</li>
             </ul>
+            <p className="ai-guide-note">
+              ⚠️ 여기서 만들어지는 프로그램은 <strong>완성된 최종 프로그램이 아니라</strong>, 완성형으로 가기 위한
+              <strong> 중간 단계(프로토타입)</strong>입니다. 실제 하드웨어 연동·서버·DB 저장 같은 기능은 빠져 있어요.
+              다운로드한 파일 안에 담긴 안내를 챗GPT·Claude 같은 <strong>생성형 AI 코딩 도구</strong>에 그대로 붙여넣으면,
+              그 도구가 진짜 완성형 프로그램까지 만들어 줄 수 있습니다.
+            </p>
           </div>
           <p className="ai-typepick-title">어떤 프로그램을 만들고 싶으신가요?</p>
-          <div style={{ display: "flex", gap: "10px", marginBottom: "12px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "0.78rem", color: "#7b7f93" }}>✅ 완성형 — 바로 사용 가능</span>
-            <span style={{ fontSize: "0.78rem", color: "#7b7f93" }}>🌱 씨앗형 — 시뮬레이션 (AI로 실제 제어 완성)</span>
-          </div>
           <div className="ai-typepick-grid">
             {PROGRAM_TYPES.map(t => (
               <button key={t.id} className="ai-typepick-card" onClick={() => handleTypeCardClick(t)}>
                 <span className="ai-typepick-icon">{t.icon}</span>
                 <span className="ai-typepick-label">{t.label}</span>
                 <span className="ai-typepick-desc">{t.desc}</span>
-                <span style={{ fontSize: "0.7rem", marginTop: "4px", color: t.seed ? "#6c63ff" : "#22c55e" }}>
-                  {t.seed ? "🌱 씨앗형" : "✅ 완성형"}
-                </span>
               </button>
             ))}
           </div>
@@ -800,15 +796,13 @@ export default function ProgramDesigner({ onBack }) {
             )}
           </div>
 
-          {SEED_TYPES.has(spec._typeId) && (
-            <div style={{ background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
-              <p style={{ fontWeight: 700, color: "#6c63ff", marginBottom: 6 }}>🌱 씨앗형 프로그램</p>
-              <p style={{ fontSize: 13, color: "#9ba5bb", lineHeight: 1.6 }}>
-                이 프로그램은 시뮬레이션 데모입니다. 실제 하드웨어 연동은 생성된 파일을 Claude / ChatGPT에 넣어 완성하세요.<br />
-                <strong style={{ color: "#e8eaf0" }}>대화만으로 프로그램을 만들 수 있어요!</strong>
-              </p>
-            </div>
-          )}
+          <div style={{ background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+            <p style={{ fontWeight: 700, color: "#6c63ff", marginBottom: 6 }}>⚠️ 프로토타입 안내</p>
+            <p style={{ fontSize: 13, color: "#9ba5bb", lineHeight: 1.6 }}>
+              완성된 최종 프로그램이 아닌 프로토타입입니다. 실제 서버·하드웨어 연동은 생성된 파일을 Claude / ChatGPT에 넣어 완성하세요.<br />
+              <strong style={{ color: "#e8eaf0" }}>대화만으로 완성형 프로그램을 만들 수 있어요!</strong>
+            </p>
+          </div>
 
           <div className="ai-spec-files">
             <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 8 }}>생성될 파일</p>

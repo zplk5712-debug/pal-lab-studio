@@ -226,6 +226,7 @@ export default function ProductDatabaseManager({
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [uploadState, setUploadState] = useState(null);
+  const [hasSelectedManually, setHasSelectedManually] = useState(false);
 
   const config = PRODUCT_DB_CONFIG[activeTab];
   const items = getDatabaseByTab(activeTab, lmGuideItems, encoderItems);
@@ -425,7 +426,7 @@ export default function ProductDatabaseManager({
                 type="button"
                 key={item.id}
                 className={`db-list-item${selectedItem?.id === item.id ? " is-selected" : ""}`}
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => { setSelectedId(item.id); setHasSelectedManually(true); }}
               >
                 <div className="db-list-item__head">
                   <strong>{item.model}</strong>
@@ -452,7 +453,7 @@ export default function ProductDatabaseManager({
             </div>
           </div>
 
-          {selectedItem ? (
+          {hasSelectedManually && selectedItem ? (
             <div className="db-detail">
               <div className="db-detail-hero">
                 <div>
@@ -477,8 +478,13 @@ export default function ProductDatabaseManager({
               </div>
             </div>
           ) : (
-            <div className="empty-box">
-              <p>표시할 상세 항목이 없습니다.</p>
+            <div className="empty-box empty-box--guide">
+              <h3>제품 DB 관리 사용법</h3>
+              <ul>
+                <li><strong>1. 필터·검색</strong> — 왼쪽에서 제조사를 고르거나 모델명으로 검색합니다.</li>
+                <li><strong>2. 항목 선택</strong> — 목록에서 항목을 클릭하면 여기에 전체 상세가 표시됩니다.</li>
+                <li><strong>3. 업로드</strong> — JSON/CSV 파일을 올려 새 항목을 검사 후 추가합니다.</li>
+              </ul>
             </div>
           )}
         </section>

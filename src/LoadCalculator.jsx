@@ -1183,46 +1183,19 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
               </div>
             </div>
           ) : (
-            <div className="empty-box">
-              <p>
+            <div className="empty-box empty-box--guide">
+              <h3>계산 안내</h3>
+              <div className="load-formula-list">
+                <p><strong>모델링 파일 인식</strong> — STL은 메쉬로 체적을 자동 계산하고, STEP/STP는 조립도·부품명·체적 메타데이터를 우선 읽습니다.</p>
+                <p><strong>여러 항목 합산</strong> — 각 항목을 개별 계산한 뒤 총합으로 다시 합산합니다. 수동 입력은 질량·하중 기준으로 바로 환산합니다.</p>
+                <p><strong>기본 공식</strong> — 질량 = 체적 × 밀도, 중량(N) = 질량 × 9.81, 안전율 반영 하중(N) = 중량 × 안전율</p>
+              </div>
+              <p className="empty-box--guide-footnote">
                 여러 항목을 입력하거나 모델링 파일을 업로드한 뒤 합산 계산하기를 누르면
                 총 하중 결과를 한 번에 확인할 수 있습니다.
               </p>
             </div>
           )}
-        </section>
-
-        <section className="card load-card">
-          <h2>계산 안내</h2>
-          <div className="load-side-stack">
-            <div className="note-box">
-              <h3>모델링 파일 인식 방식</h3>
-              <div className="load-formula-list">
-                <p>STL은 브라우저에서 메쉬를 읽어 체적을 자동 계산합니다.</p>
-                <p>STEP/STP는 조립도 여부와 부품명, 체적 메타데이터를 우선 읽습니다.</p>
-                <p>STEP 조립도는 기본적으로 공통 소재 1번 선택으로 계산하고, 필요할 때만 고급 옵션을 엽니다.</p>
-              </div>
-            </div>
-
-            <div className="note-box">
-              <h3>여러 항목 합산 방식</h3>
-              <div className="load-formula-list">
-                <p>각 항목은 개별 계산 후 총합으로 다시 합산합니다.</p>
-                <p>직접 입력과 모델 업로드는 체적과 밀도를 적용합니다.</p>
-                <p>수동 입력은 질량 또는 하중 기준으로 바로 환산합니다.</p>
-              </div>
-            </div>
-
-            <div className="note-box">
-              <h3>기본 공식</h3>
-              <div className="load-formula-list">
-                <p>질량 = 체적 × 밀도</p>
-                <p>중량(N) = 질량 × 9.81</p>
-                <p>하중(kgf) = 질량</p>
-                <p>안전율 반영 하중(N) = 중량 × 안전율</p>
-              </div>
-            </div>
-          </div>
         </section>
       </div>
     </div>

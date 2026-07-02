@@ -956,8 +956,17 @@ export default function ThermalAnalyzer({ onBack }) {
               )}
             </>
           ) : (
-            <div className="th-empty">
-              {statusLabel ?? "STL 또는 STEP 파일을 업로드하면 여기에 3D 모델이 표시됩니다."}
+            <div className="th-empty th-empty--guide">
+              <div className="th-guide-card">
+                <h3>열해석 사용 가이드</h3>
+                <ul>
+                  <li><strong>1. 모델 업로드</strong> — STL 또는 STEP 파일을 올리면 3D 모델이 여기에 표시됩니다.</li>
+                  <li><strong>2. 해석 유형</strong> — 정상상태(최종 온도) 또는 과도(시간별 변화) 중 선택합니다.</li>
+                  <li><strong>3. 소재·경계조건</strong> — 소재를 고르고 냉각면·열원면 온도를 지정합니다.</li>
+                  <li><strong>4. 해석 실행</strong> — 버튼을 누르면 온도 분포가 3D로 시각화됩니다.</li>
+                </ul>
+                {statusLabel && <p className="th-guide-status">{statusLabel}</p>}
+              </div>
             </div>
           )}
         </div>

@@ -105,7 +105,7 @@ const TOOLS = [
   {
     id: "ai-assistant",
     title: "프로그램 설계소",
-    description: "유형을 선택하고 몇 가지 질문에 답하면 바로 사용 가능한 HTML 프로그램이 다운로드됩니다.",
+    description: "유형을 선택하고 몇 가지 질문에 답하면 실행 가능한 프로토타입 HTML 프로그램이 다운로드됩니다. AI 코딩 도구로 완성형까지 만들 수 있어요.",
     status: "사용 가능",
     caption: "Program Designer",
     actionLabel: "열기",
@@ -258,35 +258,49 @@ export default function App() {
           <div className="home-mode-list">
             <div className="home-mode-item" onClick={() => setPage("motor")}>
               <span className="home-mode-num">01</span>
-              <span className="home-mode-name">모션 설계 도우미</span>
+              <span className="home-mode-name">
+                모션 설계 도우미
+                <span className="home-mode-desc"> · 모터·감속기·볼스크류 자동 추천</span>
+              </span>
               <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("load")}>
               <span className="home-mode-num">02</span>
-              <span className="home-mode-name">하중 계산</span>
+              <span className="home-mode-name">
+                하중 계산
+                <span className="home-mode-desc"> · 형상·소재로 안전율 반영 하중 계산</span>
+              </span>
               <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("thermal")}>
               <span className="home-mode-num">03</span>
-              <span className="home-mode-name">열해석</span>
+              <span className="home-mode-name">
+                열해석
+                <span className="home-mode-desc"> · STL 업로드 → 3D 온도 분포 시각화</span>
+              </span>
               <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("ai-assistant")}>
               <span className="home-mode-num">04</span>
-              <span className="home-mode-name">프로그램 생성 AI</span>
+              <span className="home-mode-name">
+                프로그램 설계소
+                <span className="home-mode-desc"> · 질문에 답하면 실행 가능한 프로토타입 제작</span>
+              </span>
               <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("db")}>
               <span className="home-mode-num">05</span>
-              <span className="home-mode-name">제품 DB 관리</span>
+              <span className="home-mode-name">
+                제품 DB 관리
+                <span className="home-mode-desc"> · LM가이드·엔코더 카탈로그 검색</span>
+              </span>
               <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
             </div>
-          </div>
-          <div className="home-actions">
-            <button type="button" className="button home-cta" onClick={() => setPage("motor")}>
-              시작하기
-            </button>
-            <span className="home-inline-note">모터 선정부터 구동계 패키지까지 자동 추천</span>
           </div>
         </div>
 
@@ -294,31 +308,38 @@ export default function App() {
           <div className="home-panel home-feature-panel">
             <ul className="home-feature-list">
               <li>
-                <span className="home-feature-icon">⚙️</span>
+                <span className="home-feature-icon home-feature-icon--blue">⚙️</span>
                 <div>
                   <strong>모션 설계 자동화</strong>
-                  <p>모터·감속기·볼스크류·엔코더까지 자동 추천</p>
+                  <p>전문가 없이도 최적 구동계를 몇 분 만에 찾습니다</p>
                 </div>
               </li>
               <li>
-                <span className="home-feature-icon">🔥</span>
+                <span className="home-feature-icon home-feature-icon--cyan">⚖️</span>
+                <div>
+                  <strong>하중 계산</strong>
+                  <p>복잡한 수식 없이 안전율까지 바로 확인합니다</p>
+                </div>
+              </li>
+              <li>
+                <span className="home-feature-icon home-feature-icon--orange">🔥</span>
                 <div>
                   <strong>열해석 FEM</strong>
-                  <p>STL 업로드 → 유한요소법 온도 분포 3D 시각화</p>
+                  <p>발열 문제를 설계 단계에서 미리 잡아냅니다</p>
                 </div>
               </li>
               <li>
-                <span className="home-feature-icon">🤖</span>
+                <span className="home-feature-icon home-feature-icon--purple">🤖</span>
                 <div>
-                  <strong>AI 코드 생성</strong>
-                  <p>아이디어를 말하면 React 프로젝트 자동 생성</p>
+                  <strong>프로그램 설계소</strong>
+                  <p>코딩 몰라도 실행되는 프로토타입이 바로 만들어집니다</p>
                 </div>
               </li>
               <li>
-                <span className="home-feature-icon">📦</span>
+                <span className="home-feature-icon home-feature-icon--green">📦</span>
                 <div>
                   <strong>제품 DB 관리</strong>
-                  <p>LM가이드·엔코더 카탈로그 업로드 및 검색</p>
+                  <p>흩어진 카탈로그를 한 곳에서 찾습니다</p>
                 </div>
               </li>
             </ul>
