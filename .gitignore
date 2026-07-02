@@ -1,0 +1,38 @@
+# Cache and temp
+.npm-cache
+.claude
+test-output
+test-*.mjs
+04-재고관리.js
+12-레시피관리.js
+14-데이터분석.js
+release
+.tools
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local Netlify folder
+.netlify

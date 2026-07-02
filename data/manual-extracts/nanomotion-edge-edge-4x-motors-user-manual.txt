@@ -1,0 +1,917 @@
+EDGE458001-01 REV:B Sep 2019
+Nanomotion Ltd. POB 623, Yokneam 20692, Israel
+Tel: 972-73-2498000 Fax: 972-73-2498099
+Web Site: www.nanomotion.com
+E-mail: nano@nanomotion.com
+EDGE & EDGE-4X
+Motors
+User Manual
+
+-- 1 of 42 --
+
+Motor User Manual Copyright
+Nanomotion Ltd. 2
+Copyright
+This document contains proprietary information of Nanomotion Ltd., and may not
+be reproduced in any form without prior written consent from Nanomotion Ltd.
+No part of this document may be reproduced, translated, stored in a retrieval
+system or transmitted in any form and by any means, electronic, mechanical,
+photographic, photocopying, recording, or otherwise, without the written permission
+of Nanomotion Ltd.
+Information provided in this document is subject to change without notice and does
+not represent a commitment on the part of Nanomotion Ltd.
+Copyright: 2011-2012, Yokneam, Israel. All rights reserved.
+All products and company names are trademarks or registered trademarks of their
+respective holders.
+Limited Warranty
+Nanomotion Ltd. (hereinafter NM) warrants the product (other than software)
+manufactured by it to be free from defects in material and workmanship for a period
+of time of one year (except those parts normally considered as
+consumable/expendable components such as motor conditioning brushes). The
+warranty commences thirty (30) days from the date of shipment.
+NM warrants those parts replaced under warranty for a period equal to the
+remaining warranty coverage of the original part.
+NM’s sole and exclusive obligation under this warranty provision shall be to repair,
+or at its sole option exchange defective products or the relevant part or component,
+but only if: (i) the Purchaser reports the defect to NM in writing and provides a
+description of the defective product and complete information about the manner of
+its discovery within ten (10) days of its discovery; (ii) NM has the opportunity to
+investigate the reported defect and to determine that the defect arises from faulty
+material, parts or workmanship; and (iii) the Purchaser returns the affected product
+to a location designated by NM. These provisions constitute the exclusive remedy
+of the Purchaser for product defects or any other claim of liability in connection with
+the purchase or use of NM products.
+This warranty policy applies only to NM products purchased directly from NM or
+from an authorized NM distributor or representative.
+This warranty shall not apply to (i) products repaired or altered by anyone other
+than those authorized by NM; (ii) products subjected to negligence, accidents or
+damage by circumstances beyond NM control; (iii) product subjected to improper
+operation or maintenance (i.e. operation not in accordance with NM Installation
+Manuals and/or instructions) or for use other than the original purpose for which the
+product was designed to be used.
+
+-- 2 of 42 --
+
+Motor User Manual Limited Warranty
+Nanomotion Ltd. 3
+NM shall not in any event have obligations or liabilities to the Purchaser or any
+other party for loss of profits, loss of use or incidental, increased cost of operation
+or delays in operation, special or consequential damages, whether based on
+contract, tort (including negligence), strict liability, or any other theory or form of
+action, even if NM has been advised of the possibility thereof, arising out of or in
+connection with the manufacture, sale, delivery, use, repair or performance of the
+NM products. Without limiting the generality of the preceding sentence, NM shall
+not be liable to the Purchaser for personal injury or property damages.
+
+-- 3 of 42 --
+
+Motor User Manual Limited Warranty
+Nanomotion Ltd. 4
+Patent Information
+Nanomotion products are covered under one or more of the following registered or
+applied for patents.
+5,453,653; 5,616,980; 5,714,833; 111597; 5,640,063; 6,247,338; 6,244,076; 6,747,391;
+6,661,153; 69838991.3; 6,384,515; 7,119,477; 7,075,211; 69932359.5;1186063;
+7,211,929; 69941195.5; 1577961; 4813708; 6,879,085; 6,979,936; 7,439,652; 7061158
+;1800356; 1800356; 1800356; 2007-533057 (pending); 2011-093431 (pending);
+7,876,509; 10-2007-7009928 (pending); 200780019448.6 ; 7713361.9 (pending);
+12/294,926 (pending); GB2008000004178 (pending); GB2009000003796 (pending);
+12/398,216 (pending); GB2446428; 12/517,261 (pending); 08702695.1 (pending); 10-
+2009-7017629 (pending); 12/524,164 (pending); 12/581,194 (pending)
+
+-- 4 of 42 --
+
+Motor User Manual Limited Warranty
+Nanomotion Ltd. 5
+Revision History
+Revision Date Details
+00/A July 2011 New release
+NA August 2012 Administrative change – added patent information to the front
+matter.
+00/B July 2013 Corrected the related documents on page 8
+01/A Nov 2016 Add EDGE-4X and combine to one User manual for EDGE &
+EDGE-4X family motors
+01/B Sep 2019 Update Figure 17: Edge-4X Motor Layout.
+
+-- 5 of 42 --
+
+Motor User Manual Table of Contents
+Nanomotion Ltd. 6
+Table of Contents
+1 GENERAL ...................................................................................................................... 10
+General Handling Guidelines ................................................................................. 10	1.1
+Reference Documentation ..................................................................................... 10	1.2
+2 INTRODUCTION ............................................................................................................ 11
+The EDGE Motor ................................................................................................... 11	2.1
+The EDGE-4X Motor ............................................................................................. 11	2.2
+EDGE & EDGE-4X Motor Features ....................................................................... 11	2.3
+3 MOTOR OPERATION .................................................................................................... 13
+Operation Principle of EDGE & EDGE-4X Motors ................................................. 13	3.1
+Driving Modes ....................................................................................................... 13	3.2
+4 MOTOR INSTALLATION ............................................................................................... 15
+Mounting Base Design Considerations .................................................................. 15	4.1
+Bonding the Driving Strip to the Stage ................................................................... 16	4.2
+Mounting and Connecting the EDGE Motor ........................................................... 18	4.3
+Mounting and Connecting the EDGE-4X Motor ..................................................... 21	4.4
+Operating the motor .............................................................................................. 23	4.5
+Driver/Controller ......................................................................................... 23	4.5.1
+5 MOTOR CONDITIONING ............................................................................................... 24
+The Conditioning Procedure .................................................................................. 24	5.1
+6 TECHNICAL DATA ........................................................................................................ 25
+Motor Model for Control Simulations...................................................................... 25	6.1
+Specifications EDGE ............................................................................................. 26	6.2
+Performance............................................................................................... 26	6.2.1
+Electrical .................................................................................................... 26	6.2.2
+Environmental ............................................................................................ 26	6.2.3
+Dimensions ........................................................................................................... 27	6.3
+Thermal Envelope of Performance (EOP) ............................................................. 27	6.4
+
+-- 6 of 42 --
+
+Motor User Manual Table of Contents
+Nanomotion Ltd. 7
+EDGE Motor ............................................................................................... 27	6.4.1
+EDGE-4X Motor ......................................................................................... 31	6.4.2
+7 ELECTRO-MECHANICAL INTERFACES ...................................................................... 35
+EDGE Motor Layout .............................................................................................. 35	7.1
+EDGE Motor Layout ................................................................................... 35	7.1.1
+EDGE Mounting Base Layout ..................................................................... 36	7.1.2
+EDGE Motor Electro-Mechanical Interface ................................................. 37	7.1.3
+EDGE-4X Motor Layout ......................................................................................... 38	7.2
+EDGE-4X Motor Layout .............................................................................. 38	7.2.1
+EDGE-4X Mounting Base Layout ............................................................... 39	7.2.2
+EDGE 4X Motor Electro-Mechanical Interface ............................................ 40	7.2.3
+8 CONTACT INFORMATION ............................................................................................ 41
+Customer Service .................................................................................................. 41	8.1
+General Inquiries and Ordering ............................................................................. 41	8.2
+
+-- 7 of 42 --
+
+Motor User Manual List of Figures
+Nanomotion Ltd. 8
+List of Figures
+Figure 1: Bonding the Ceramic Driving Strip ....................................................................... 16
+Figure 2: EDGE motor motion system mechanical parts overview ...................................... 18
+Figure 3: Connecting the Motor FPC to the FPC Electrical Interface (example of design
+used for EDGE EVALUATION KIT)..................................................................... 19
+Figure 4: Example of stage based on EDGE motor including ASIC EDGE driver and
+position encoder (EDGE MOTOR EVALUATION KIT stage). .............................. 20
+Figure 5: EDGE-4X Motor Motion System Mechanical Parts Overview ............................... 21
+Figure 6: Connecting the Motor FPC to the FPC Electrical Interface (example of design
+used for EDGE-4X MOTOR EVALUATION KIT) ................................................. 22
+Figure 7: Block Diagram of the Motor and Driver................................................................. 25
+Figure 8: Typical EDGE Motor Velocity vs. Command Operating in Standard Driving
+Mode .................................................................................................................. 28
+Figure 9: Typical Motor Velocity vs. Command Operating in Linear Driving Mode ............... 29
+Figure 10: EDGE motor Force vs. Velocity at different work regimes .................................. 29
+Figure 11: Typical EDGE 4X Motor Velocity vs. Command Operating in Standard Driving
+Mode .................................................................................................................. 31
+Figure 12: Typical EDGE 4X Motor Velocity vs. Command Operating in Linear Driving
+Mode .................................................................................................................. 32
+Figure 13: EDGE-4X motor Force vs. Velocity at different work regimes ............................. 32
+Figure 14: EDGE Motor Mechanical Layout ........................................................................ 35
+Figure 15: EDGE motor mounting base requirements ......................................................... 36
+Figure 16: EDGE motor electro-mechanical interface.......................................................... 37
+Figure 17: Edge-4X Motor Layout ....................................................................................... 38
+Figure 18: EDGE-4X motor mounting base requirements ................................................... 39
+Figure 19: EDGE-4X motor electro-mechanical interface .................................................... 40
+
+-- 8 of 42 --
+
+Motor User Manual List of Abbreviations
+Nanomotion Ltd. 9
+List of Abbreviations
+ASIC
+Application Specific Integrated Circuit
+Refers specifically to Nanomotion
+Controller Driver chip.
+AC Alternating Current
+DC Direct Current
+ICD Interface Controlled Document
+IPA Isopropyl Alcohol used for cleaning
+PCB Printed circuit board
+FPC Flexible Printed Circuit
+
+-- 9 of 42 --
+
+Motor User Manual General
+Nanomotion Ltd. 10
+1 General
+The purpose of this user manual is to help the user to install and operate the
+EDGE & EDGE-4X Piezoceramic Motor.
+This manual describes the physical dimensions, mechanical and electrical
+properties as well as the installation procedures of the motors.
+This manual assumes that the user has a fundamental understanding of basic
+motion systems, as well as motion control concepts and applicable safety
+procedures.
+General Handling Guidelines	1.1
+Do not remove the cover of the motor!	1.
+Switch the power on only when the motor is properly mounted and connected	2.
+to the driver / controller.
+Do not immerse the motor in any liquid or cleaning agent. Use only a clean	3.
+room lint free cloth to wipe the motor.
+Ensure that the motor, and especially the "fingertip", is not subjected to direct	4.
+high mechanical shock.
+Follow the installation instructions provided in this manual when mounting the	5.
+motor. The EDGE & EDGE-4X motor is not user-serviceable. For any
+installation and mounting inquiries, please contact Nanomotion.
+Reference Documentation	1.2
+Nanomotion ASIC NM8SiP user manual, document No.: ASIC458000-XX.
+XCD EDGE Driver-Controller, document No.: XCDE458000.
+XCD2 Edge-4X driver-control ref PN - XCDE458000-XX.
+EDGE INTERFACE DRAWING, document No.: EDGE458101-01.
+EDGE-4X INTERFACE DRAWING, document No.: EDG4129000-00.
+
+-- 10 of 42 --
+
+Motor User Manual Introduction
+Nanomotion Ltd. 11
+2 Introduction
+The EDGE Motor	2.1
+The EDGE motor is the smallest industrial motor of its kind available in the
+marketplace today. Providing typical 0.4N stall force, maximum velocity of 200
+mm/sec and unlimited linear or rotary motion, the EDGE motor offers extensive
+opportunities in applications that suit a wide range of industries. The EDGE
+motor works with a uniquely designed, compact ASIC-based driver, XCD and
+XCD2 controller / driver. The EDGE motor can be easily integrated with most
+types of bearing structures and it is ideal for mass production applications.
+The EDGE-4X Motor	2.2
+The EDGE-4X motor expands the EDGE product line of low voltage piezo
+motors, bringing four times the force of the Edge motor. The EDGE-4X provides
+up to 1.3N stall force and unlimited travel for linear or rotary applications.
+Continuing to optimize size, weight and power.
+EDGE & EDGE-4X Motor Features	2.3
+ Compact size
+ Lightweight
+ High durability for demanding applications
+ Low voltage
+ Excellent move and settle characteristics
+ Suitable for linear or rotary applications
+
+-- 11 of 42 --
+
+Motor User Manual Introduction
+Nanomotion Ltd. 12
+ ASIC, XCD and XCD2 drive and control:
+- Standard Driving Mode
+- Linear Driving Mode
+- Wide dynamic velocity range
+- Inherent brake at power off
+- High resolution
+- Silent
+
+-- 12 of 42 --
+
+Motor User Manual Motor Operation
+Nanomotion Ltd. 13
+3 Motor Operation
+Operation Principle of EDGE & EDGE-4X	3.1
+Motors
+The Piezoelectric effect in piezo materials converts an electrical field into
+mechanical strain. Under special electrical excitation drive and specific geometry
+of Nanomotion motors, longitudinal extension and transverse bending oscillation
+modes are excited simultaneously at a single frequency. The simultaneous
+excitation of the longitudinal extension mode and the transverse bending mode
+creates a small elliptical trajectory of the ceramic tip, thus achieving the dual
+mode standing wave motor patented by Nanomotion. By coupling the ceramic tip
+to a precision stage, a resultant driving force is exerted on the stage, causing
+stage movement. The periodic nature of the driving force at frequencies much
+higher than the mechanical resonance of the stage allows continuous smooth
+motion for unlimited travel, while maintaining high resolution and positioning
+accuracy typical of piezoelectric devices. Motion can be linear or rotary,
+depending on the coupling mechanism.
+Driving Modes	3.2
+The EDGE & EDGE-4X motors can be driven by a custom NM ASIC driver, or
+alternatively by an XCD and XCD2 EDGE & EDGE-4X Driver-Controller (refer to
+section 1.2 for Reference Documentation). The drivers can drive the motor in two
+driving modes:
+ Standard Driving Mode – standard motor operation mode. In this mode the
+motor is motionless up to approximately ±1.5V command (Dead Band).
+Nanomotion motion algorithm enables smooth motion as well as micron-level
+displacement. This drive mode is the default mode for open / close-loop.
+
+-- 13 of 42 --
+
+Motor User Manual Motor Operation
+Nanomotion Ltd. 14
+ Linear Driving Mode – this mode facilitates a linear response of the motor
+from 0 (zero) command level. This mode is recommended for scanning
+applications and micron-level displacement. The Linear Mode drive is
+preferable for perfect servo tracking and/or very low ripple constant velocity.
+
+-- 14 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 15
+4 Motor Installation
+This chapter provides detailed information about bonding the Ceramic Driving
+Strip and mounting and connecting the EDGE & EDGE-4X motors before
+operation.
+To ensure peak motor performance, use of the Ceramic Driving Strip provided by
+Nanomotion is recommended. The Ceramic Driving Strip is specifically designed
+to work with Nanomotion's EDGE & EDGE-4X motors. Substituting this Strip with
+any other material might reduce motor performance or damage the motor and will
+void product warranty.
+Mounting Base Design Considerations	4.1
+Refer to chapter 7 for motor and mounting base drawings - note that mounting
+base dimensions refer to the front surface of the Ceramic Driving Strip. The
+mounting base should be perpendicular to the Ceramic Driving Strip.
+Both screws securing the motor to the mounting surface are inserted from the top
+of the motor. In multi axis application make sure that any protrusion of the
+screws does not interfere with motion on another axis.
+IMPORTANT:
+ The mounting base, the stage and the method used for mounting should
+be designed for maximum mechanical rigidity and stiffness
+≥ 5 N/m for EDGE motor and > 10 N/m for EDGE 4X motor.
+ The ceramic strip surface should move parallel to the motion. The
+maximum allowable run-out of the strip should not exceed ±0.03mm
+(chapter 7)
+
+-- 15 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 16
+Bonding the Driving Strip to the Stage	4.2
+Bond the Ceramic Driving Strip to the stage surface according to the following
+steps:
+Clean the bonding area of the stage, using a suitable agent such as Acetone,	1.
+IPA or Ethanol.
+Remove the Acrylic adhesive Tape backing paper from the Ceramic Driving	2.
+Strip.
+Attach the Ceramic Driving Strip to the previously cleaned stage area (see ),
+making sure no air bubbles are trapped between the stage and the ceramic.
+Figure 1: Bonding the Ceramic Driving Strip
+Verify that there is a maximum gap of 0.5mm between the lower edge of the	3.
+Ceramic Driving Strip and the motor mounting surface (refer to chapter 7) to
+assure enough clearance for the motor tip.
+Apply Epoxy adhesive on the center of the Ceramic Driving Strip surface,	4.
+about 5 mm length (see Figure 1). For short strips up to 10mm, a single drop
+can be applied on each end of the Ceramic Driving Strip (see Optional Epoxy
+drop in Figure 1). The Epoxy must bond the strip to the slide. Recommended
+adhesive: Araldite 2014-1 or compatible.
+Allow the required time period for curing, according to the epoxy	5.
+manufacturer’s specifications.
+Epoxy strip of 5mm in the
+center of the ceramic strip
+Optional Epoxy drop on
+the end of the ceramic
+
+-- 16 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 17
+IMPORTANT:
+ Ensure that the epoxy is in contact with the surfaces of both the strip and
+slide, but that it does not flow over the Ceramic Driving Strip front surface
+or over the upper working surface of the slide.
+
+-- 17 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 18
+Mounting and Connecting the EDGE Motor	4.3
+In order to mount the motor against the moving slide (see Figure 2 and chapter 7)
+perform the following steps:
+Figure 2: EDGE motor motion system mechanical parts overview
+Assemble the slide with the ceramic strip upon the mounting plate. Make sure the
+slide position is according to Figure 15. The slide should be perpendicular to the
+holes and at the correct distance to enable proper mounting of the motor. This
+can be achieved by designing an alignment feature in the base plate or by using
+a jig which fits to the motor pin holes in the base.
+Place the motor “fingertip” against the ceramic plate and gently press the	1.
+motor toward the ceramic plate until the motor pins can be inserted into the
+corresponding holes in the base. The motor is now correctly positioned.
+Insert two M1.2 screws into their corresponding holes on the motor and	2.
+tighten them to a torque of 10-30 mNm. The motor is now properly secured in
+
+-- 18 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 19
+its place. It is recommended using a bonding material such as LOCTITE™
+242 to secure the screws.
+Connect the motor’s FPC to the motor interface connector (see chapter 7.1	3.
+for details), located on the user’s PCB. PCB and FPC design may change for
+different applications.
+Figure 3: Connecting the Motor FPC to the FPC Electrical Interface (example of
+design used for EDGE EVALUATION KIT)
+FPC interface
+connector
+EDGE Motor
+Motor FPC
+connector
+Slide
+User’s PCB
+
+-- 19 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 20
+Figure 4: Example of stage based on EDGE motor including ASIC EDGE driver and
+position encoder (EDGE MOTOR EVALUATION KIT stage).
+
+-- 20 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 21
+Mounting and Connecting the EDGE-4X	4.4
+Motor
+In order to mount the motor against the moving slide (see Figure 5 and chapter 7)
+perform the following steps:
+Figure 5: EDGE-4X Motor Motion System Mechanical Parts Overview
+Insert the location pin into the corresponding hole on the motor by placing the	1.
+motor “fingertip” against the ceramic plate and gently press the motor toward
+the ceramic plate, and then insert the additional location pin through the
+motor until the pin affixed into the slot. Alternatively, use spacer with 0.6 mm
+space between the motor front wall and the ceramic strip. The motor is now
+correctly positioned.
+
+-- 21 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 22
+Insert four M1.2 screws into their corresponding holes on the motor and	2.
+tighten them to a torque of 10-30 mNm. The motor is now properly secured in
+its place. For applications which are exposed to external vibrations it is
+recommended using a bonding material such as LOCTITE™ 242 to secure
+the screws.
+Check that the distance of mounting from alumina is 0.6 mm.	3.
+Connect the motor’s FPC to the motor interface connector (see chapter for	4.
+details), located on the user’s PCB. PCB and FPC design may change for
+different applications.
+Figure 6: Connecting the Motor FPC to the FPC Electrical Interface (example of
+design used for EDGE-4X MOTOR EVALUATION KIT)
+
+-- 22 of 42 --
+
+Motor User Manual Motor Installation
+Nanomotion Ltd. 23
+Operating the motor	4.5
+Connect the power supply and the communication line to the control board.	1.
+The communication line may be either an IIC line or an analogue command
+depending on the specific application. For specific applications, please ask
+Nanomotion for SW ICD.
+Note: Please refer to the ASIC and the XCD/XCD2 EDGE driver user
+manuals (see chapter 1.2)
+Choose the driving mode (see section 3.2). The motor is now ready for	2.
+conditioning (see chapter 5).
+For operating in close-loop, install an encoder and connect a controller to the	3.
+motor driver.
+Driver/Controller	4.5.1
+EDGE motor	4.5.1.1
+The NM ASIC driver can work either as a driver or as a controller-driver (see
+chapter 1.2 for ASIC and the EDGE driver user manuals reference).
+EDGE/EDGE-4X	4.5.1.2
+The XCD EDGE/XCD2 driver can work either as a driver or as a controller-driver
+(see chapter 1.2 for XCD EDGE/XCD2 driver user manuals reference).
+For other drive and control configurations please contact Nanomotion.
+
+-- 23 of 42 --
+
+Motor User Manual Motor Conditioning
+Nanomotion Ltd. 24
+5 Motor Conditioning
+The EDGE & EDGE-4X motors must be conditioned before operating to stabilize
+the motor's dynamic performance and to assure expected lifetime of the system.
+Conditioning should be performed any time the motor is remounted on the stage.
+The Conditioning Procedure	5.1
+In order to condition the motor, perform the following steps:
+1. Conditioning is optimally performed in close loop.
+2. Conditioning must cover the entire expected travel distance on the Ceramic
+Driving Strip with additional margins.
+3. Set the driver to Standard Driving Mode (see Section 3.2).
+4. Run the stage repetitively from point to point in closed loop under the
+following conditions.
+a. Velocity – 70~80 mm/s.
+b. Acceleration/Deceleration – up to 2 m/s2
+c. Duty cycle – 50%. This means that the dwell time (the driver is disabled)
+should be the same as the move time (the driver is enabled).
+d. Conditioning duration: >30 minutes. For applications where control
+performance is not too demanding 10-15 min. conditioning is sufficient.
+5. When the conditioning is completed, carefully wipe the Ceramic Driving Strip
+surface with a Q-Tip soaked with IPA or Ethanol, without dismounting the
+motor. Run the motor for additional 1 min.
+6. The motor is now ready for operation.
+Note: This procedure is performed only for motors either assembled to the
+ceramic slide for the first time, or removed and reassembled.
+
+-- 24 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 25
+6 Technical Data
+Motor Model for Control Simulations	6.1
+The EDGE & EDGE-4X motor moving a slide in a given direction can be
+modeled as a linear system driven by a DC motor by a voltage amplifier, as
+illustrated in Figure 7.
+Figure 7: Block Diagram of the Motor and Driver
+ Vin - Command to the driver (0V ≤ Vin ≤ 10V)
+ Kf - Force constant [N/V]
+ Offset (*) - Starting voltage [V]
+ Kfv - Velocity damping factor (similar to back EMF) [N•s/m]
+ Vel - Motor velocity [m/s]
+ M - Moving mass [kg]
+ s - Laplace variable [1/s]
+(*) The diagram refers to both standard and linear modes. In linear drive mode
+Offset is designed to be zero.
+
+-- 25 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 26
+Specifications EDGE	6.2
+Performance	6.2.1
+Property EDGE
+Value
+EDGE-4X
+Value Unit
+Maximum Velocity >150 >180 mm/s
+Max Dynamic Stall Force >0.32 >1.3 N
+Static Holding Force >0.29 >1.2 N
+Static Stiffness 0.06 to 0.09 0.25 to 0.31 N/m
+Preload on Stage 1.55 to 1.95 5.5-6.5 N
+Kf 30 to 50 269-411 mN /[V]
+Kfv 1.0 to 2.7 5-11 N s/m
+Offset (Dead Band) In standard drive mode 1.0 to 3.5 10 to 33
+[%]
+[V]
+Attainable Resolution 0.5 * 0.5 * μm
+Nominal Lifetime 20000 * 20000 * hr
+Electrical	6.2.2
+Property EDGE
+Value
+EDGE-4X
+Value Unit
+Motor Voltage at max command 8.5 to 11 14 V AC
+Motor Current at max command 130 * 250 * mA AC
+Motor Power Consumption at max command 400 to 750 1.5-2 [W] mW
+Motor Capacitance (between Phase and COMMON) 9.5 * 23.5 * nF
+Environmental	6.2.3
+Property EDGE Value EDGE-4X
+Value
+Unit
+Ambient Operating Temperature Standard -10 to 60 -10 to 60 °C
+Extended ** -45 to 71 -40 to 71 °C
+Storage Temperature -55 to 85 -55 to 85 °C
+Humidity 0 to 80%
+non-
+condensing
+0 to 80%
+* Reference Value
+** With NM Controller-Driver and algorithm
+
+-- 26 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 27
+Dimensions	6.3
+In the following table are the external dimensions of the motor. For detailed
+dimensions refer to section 7.1.
+Physical Dimensions (Nominal Values)
+Property Unit EDGE Value EDGE-4X Value
+Length mm 13.5 22.8
+Width mm 7.6 12.4
+Height mm 3.15 4.3
+Weight g 0.55 2.2g
+Thermal Envelope of Performance (EOP)	6.4
+EDGE Motor	6.4.1
+Motor operating temperature is a result of the balance between heat generation
+and heat dissipation.
+ The heat generation depends on motor's work regime (driver command
+level).
+ The heat is dissipated through the following heat transfer mechanisms:
+conduction, radiation and convection by air.
+The heat dissipation mechanisms should be able to dissipate the heat generated
+in order to avoid overheating. The EOP gives the user the tools to assess the
+permitted operating conditions (for a set ambient temperature and dynamic
+performance) deriving the Duty Cycle and/or Maximal Continuous Operation that
+assures safe operation.
+The user can operate the motor at a specific Duty Cycle for a periodic time
+interval which does not exceed the continuous time interval specified under
+“Maximal Continuous Operation”.
+For a given application at a given motion profile, the work regime is determined
+by the F-V curve given in Figure 10.
+
+-- 27 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 28
+Figure 8 and Figure 9 display the minimal Motor Velocity vs. Driver command in
+Standard and Linear Modes correspondingly, for correlation between driver
+settings, motor performance, and EOP.
+Figure 8: Typical EDGE Motor Velocity vs. Command Operating in Standard
+Driving Mode
+Note:
+The motor operates horizontally at room temperature and nominal conditions. It
+interfaces with the Ceramic Driving Strip (according to Nanomotion
+Specifications) and a cross-roller high quality slide.
+
+-- 28 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 29
+Figure 9: Typical Motor Velocity vs. Command Operating in Linear Driving Mode
+Figure 10: EDGE motor Force vs. Velocity at different work regimes
+Considering the above Figure 10, there is a corresponding limiting Duty Cycle
+and Maximum Continuous Operation time for each point on the motor force-
+velocity plane.
+Table 1 and Figure 10 are designed to assist the user in determining the correct
+envelope of performance and avoid overheating and damaging the motor.
+0
+50
+100
+150
+200
+250
+0 1 2 3 4 5 6 7 8 9 10
+Velocity [mm/s]
+Command [V]
+
+-- 29 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 30
+Table 1 shows the limiting Duty Cycle and Maximum Continuous Operation time
+corresponding to the reference curves in Figure 10 for Standard and Linear drive
+mode when the motor is kept in an environment of up to 70C.
+Curve
+Ambient Temperature <60 oC
+Standard Linear
+Duty
+Cycle
+[%]
+Maximum
+Continuous
+Operation [sec]
+Duty Cycle [%] Maximum
+Continuous
+Operation
+[sec]
+“Brake ON" “Brake OFF"
+a
+100 ∞ 100 100 ∞	b
+c (*)
+Curve
+Ambient Temperature 60-70 °C
+Standard Linear
+Duty
+Cycle
+[%]
+Maximum
+Continuous
+Operation [sec]
+Duty Cycle [%] Maximum
+Continuous
+Operation
+[sec]
+“Brake ON" “Brake OFF"
+a 100 ∞ 100 100 ∞
+b 100 ∞ 80 30 60
+c (*) 80 60 70 15 30
+Table 1: EOP for EDGE Motor in Standard or Linear Driving Mode
+(*) For reference only.
+
+-- 30 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 31
+Notes:
+The Duty Cycle is the ratio of the operation time and the total work cycle
+(operation time + idle time).
+During the idle time, the driver can be DISABLED (“BRAKE ON”) or set to 0 V
+command (“BRAKE OFF”). In Linear Driving Mode “BRAKE ON” and “BRAKE
+OFF” are not equivalent. Under “BRAKE OFF”, although the driver is set to 0 V
+command, power is still consumed (and therefore, heat is generated) by the
+motor, effectively reducing the allowable Duty Cycle.
+EDGE-4X Motor	6.4.2
+Figure 11 and Figure 12 display the minimal Motor Velocity vs. Driver command
+in Standard and Linear Modes correspondingly, for correlation between driver
+settings, motor performance, and EOP.
+Figure 11: Typical EDGE 4X Motor Velocity vs. Command Operating in Standard
+Driving Mode
+0
+50
+100
+150
+200
+250
+0 1 2 3 4 5 6 7 8 9 10
+Velocity [mm/s]
+Command [V]
+
+-- 31 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 32
+Figure 12: Typical EDGE 4X Motor Velocity vs. Command Operating in Linear
+Driving Mode
+For a given application at a given motion profile, the work regime is determined
+by the F-V curve given in Figure 13.
+Figure 13: EDGE-4X motor Force vs. Velocity at different work regimes
+Considering the aboveFigure 13, there is a corresponding limiting Duty Cycle and
+Maximum Continuous Operation time for each point on the motor force-velocity
+plane.
+0
+50
+100
+150
+200
+250
+0 1 2 3 4 5 6 7 8 9 10
+Velocity [mm/s]
+Command [V]
+0
+0.2
+0.4
+0.6
+0.8
+1
+1.2
+1.4
+0 20 40 60 80 100 120 140 160 180 200
+Force [N]
+Velocity [mm/s]
+a
+b
+c
+d
+
+-- 32 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 33
+Table 2 and Figure 13 are designed to assist the user in determining the correct
+envelope of performance and avoid overheating and damaging the motor.
+Table 2 shows the limiting Duty Cycle and Maximum Continuous Operation time
+corresponding to the reference curves in Figure 13 for Standard and Linear drive
+mode when the motor is kept in an environment of up to 70C.
+Curve
+Ambient Temperature <60 oC
+Standard Linear
+Duty
+Cycle
+[%]
+Maximum
+Continuous
+Operation [sec]
+Duty Cycle [%] Maximum
+Continuous
+Operation
+[sec]
+“Brake ON" “Brake OFF"
+a 100 ∞ 100 100 ∞
+b
+c
+Curve
+Ambient Temperature 60-70 °C
+Standard Linear
+Duty
+Cycle
+[%]
+Maximum
+Continuous
+Operation [sec]
+Duty Cycle [%] Maximum
+Continuous
+Operation
+[sec]
+“Brake ON" “Brake OFF"
+a 100 ∞ 100 100 ∞
+b 100 ∞ 85 59 130
+c 57 39 62 28 45
+d 47 31 61 25 38
+Table 2: EOP for EDGE-4X Motor in Standard or Linear Driving Mode
+
+-- 33 of 42 --
+
+Motor User Manual Technical Data
+Nanomotion Ltd. 34
+Notes:
+The Duty Cycle is the ratio of the operation time and the total work cycle
+(operation time + idle time).
+During the idle time, the driver can be DISABLED (“BRAKE ON”) or set to 0 V
+command (“BRAKE OFF”). In Linear Driving Mode “BRAKE ON” and “BRAKE
+OFF” are not equivalent. Under “BRAKE OFF”, although the driver is set to 0 V
+command, power is still consumed (and therefore, heat is generated) by the
+motor, effectively reducing the allowable Duty Cycle.
+
+-- 34 of 42 --
+
+Motor User Manual Electro-Mechanical Interfaces
+Nanomotion Ltd. 35
+7 Electro-Mechanical Interfaces
+EDGE Motor Layout	7.1
+EDGE Motor Layout	7.1.1
+Figure 14 shows the EDGE motor layout according to EDGE INTERFACE
+DRAWING, DOCUMENT NO. EDGE458101-01.
+Figure 14: EDGE Motor Mechanical Layout
+Note:
+The dimensions are in mm
+Preloaded Position refers to Motor installed on a mounting based according to
+Section 0.
+
+-- 35 of 42 --
+
+Motor User Manual Electro-Mechanical Interfaces
+Nanomotion Ltd. 36
+EDGE Mounting Base Layout	7.1.2
+Figure 15 shows the mounting base requirements for EDGE motors according to
+EDGE INTERFACE DRAWING, DOCUMENT NO. EDGE458101-01.
+Figure 15: EDGE motor mounting base requirements
+Note:
+The dimensions are in mm
+
+-- 36 of 42 --
+
+Motor User Manual Electro-Mechanical Interfaces
+Nanomotion Ltd. 37
+EDGE Motor Electro-Mechanical Interface	7.1.3
+Standard EDGE Motor FPC is designed to be used with a standard 1mm FPC
+Connector (for example AMP, P/N 487951-4). See EDGE INTERFACE
+DRAWING, DOCUMENT NO. EDGE 458101 for details and pin out. Note that
+the EDGE motor is also available with a custom FPC for specific OEM
+applications. Please contact Nanomotion Ltd. for advice.
+Figure 16: EDGE motor electro-mechanical interface
+Note:
+The dimensions are in mm.
+
+-- 37 of 42 --
+
+Motor User Manual Electro-Mechanical Interfaces
+Nanomotion Ltd. 38
+EDGE-4X Motor Layout	7.2
+EDGE-4X Motor Layout	7.2.1
+Figure 17 shows the EDGE motor layout according to EDGE-4X INTERFACE
+DRAWING, DOCUMENT NO. EDG4129000-00.
+Figure 17: Edge-4X Motor Layout
+
+-- 38 of 42 --
+
+Motor User Manual Electro-Mechanical Interfaces
+Nanomotion Ltd. 39
+EDGE-4X Mounting Base Layout	7.2.2
+Figure 18 shows the mounting base requirements for EDGE-4X motors according
+to EDGE-4X INTERFACE DRAWING..
+Note:
+Use two holes for dowel pins (indicated in red on the below figure) to align the
+bearing with ceramic strip perpendicular to the motor and at the correct distance.
+Figure 18: EDGE-4X motor mounting base requirements
+
+-- 39 of 42 --
+
+Motor User Manual Electro-Mechanical Interfaces
+Nanomotion Ltd. 40
+Note:
+The dimensions are in mm.
+EDGE 4X Motor Electro-Mechanical Interface	7.2.3
+Figure 19 shows the EDGE-4X motor layout according to EDGE-4X INTERFACE
+DRAWING, DOCUMENT NO. EDG4129000-00.
+Figure 19: EDGE-4X motor electro-mechanical interface
+Note:
+The dimensions are in mm.
+
+-- 40 of 42 --
+
+Motor User Manual Contact Information
+Nanomotion Ltd. 41
+8 Contact Information
+Customer Service	8.1
+Contact your local distributor or email Nanomotion Ltd. Technical Support
+Department at techsupport@nanomotion.com, with detailed problem description.
+General Inquiries and Ordering	8.2
+Item Part Number
+EDGE 4X, STANDARD EM4X-S-1-0
+EDGE 4X, 100mm EM4X-S-1-10
+MOTOR, PIEZOELECTRIC, EDGE EM1-S-0
+Related Products/Accessories
+Controller/Driver for 1 EDGE-4X motor XCD-E4X-BD1-XX*
+Controller/Driver for 2 EDGE-4X motors in
+parallel
+XCD-E4X-BD2-XX*
+BOARD, EDGE XCD-EDG-BD-XX*
+BOARD, EDGE, 2 AXIS XCD-EDGE2-BD-XX*
+XCD2 XCD2 Controller driver
+*Latest version
+
+-- 41 of 42 --
+
+Motor User Manual Contact Information
+Nanomotion Ltd. 42
+Nanomotion Ltd. Headquarters
+Nanomotion Ltd.
+PO Box 623
+Yokneam, Israel 20692
+Tel: + 972-73-2498000
+Fax: +972-73-2498099
+Web site: www.nanomotion.com
+Email: nano@nanomotion.com
+Nanomotion Inc. (US) Headquarters
+Nanomotion Inc
+1 Comac Loop, Ste. 14B2
+Ronkonkoma, NY 11779
+Tel: (800)821-6266
+Fax: (631)585-1947
+Web site: www.nanomotion.com
+Email: nanous@nanomotion.com
+
+-- 42 of 42 --

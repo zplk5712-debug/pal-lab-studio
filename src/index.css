@@ -1,0 +1,115 @@
+:root {
+  font-family: "Bahnschrift", "Segoe UI", "Malgun Gothic", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #31415e;
+  background-color: #e4edf9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --text-strong: #09152e;
+  --muted: #5e7192;
+  --accent: #0f6bff;
+  --panel: #ffffff;
+  --bg-blue: rgba(20, 87, 221, 0.38);
+  --bg-cyan: rgba(34, 211, 238, 0.24);
+  --bg-teal: rgba(45, 212, 191, 0.18);
+  --bg-indigo: rgba(99, 102, 241, 0.18);
+  --bg-white: rgba(255, 255, 255, 0.72);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 10%, var(--bg-blue), transparent 0 26%),
+    radial-gradient(circle at 88% 12%, var(--bg-cyan), transparent 0 22%),
+    radial-gradient(circle at 78% 76%, var(--bg-indigo), transparent 0 20%),
+    radial-gradient(circle at 16% 84%, var(--bg-teal), transparent 0 20%),
+    radial-gradient(circle at 55% 22%, rgba(186, 230, 253, 0.18), transparent 0 18%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.18) 44%, rgba(255, 255, 255, 0) 68%),
+    linear-gradient(180deg, #edf5ff 0%, #e0ebf8 46%, #e6eef9 100%);
+  background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  background:
+    linear-gradient(rgba(106, 138, 188, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(106, 138, 188, 0.1) 1px, transparent 1px),
+    repeating-linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.045) 0,
+      rgba(59, 130, 246, 0.045) 1px,
+      transparent 1px,
+      transparent 24px
+    );
+  background-size: 92px 92px, 92px 92px, 100% 100%;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.78), transparent 90%);
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 14% 24%, rgba(255, 255, 255, 0.8), transparent 0 20%),
+    radial-gradient(circle at 72% 14%, rgba(255, 255, 255, 0.68), transparent 0 18%),
+    radial-gradient(circle at 88% 68%, rgba(186, 230, 253, 0.7), transparent 0 16%),
+    radial-gradient(circle at 42% 94%, rgba(255, 255, 255, 0.52), transparent 0 18%);
+  filter: blur(30px);
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text-strong);
+  line-height: 1.15;
+}
+
+h1 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  margin-bottom: 12px;
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}

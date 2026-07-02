@@ -1,0 +1,23 @@
+[
+  {
+    "sourceFile": "70e6e1da-4522-4c7e-b9e7-daf187f0f0fb.pdf",
+    "textFile": "C:\\Users\\user\\OneDrive - postech.ac.kr\\바탕 화면\\motor-simulator-react\\data\\manual-extracts\\nanomotion-rc3-ultrasonic-motor-user-manual.txt",
+    "metaFile": "C:\\Users\\user\\OneDrive - postech.ac.kr\\바탕 화면\\motor-simulator-react\\data\\manual-extracts\\nanomotion-rc3-ultrasonic-motor-user-manual.json",
+    "pages": 21,
+    "textLength": 18372
+  },
+  {
+    "sourceFile": "0c7f163f-e2b6-4ab4-ba8e-8a7e4d31d083.pdf",
+    "textFile": "C:\\Users\\user\\OneDrive - postech.ac.kr\\바탕 화면\\motor-simulator-react\\data\\manual-extracts\\nanomotion-edge-edge-4x-motors-user-manual.txt",
+    "metaFile": "C:\\Users\\user\\OneDrive - postech.ac.kr\\바탕 화면\\motor-simulator-react\\data\\manual-extracts\\nanomotion-edge-edge-4x-motors-user-manual.json",
+    "pages": 42,
+    "textLength": 37962
+  },
+  {
+    "sourceFile": "a8a13409-d98b-4363-b83e-b748f605cbff.pdf",
+    "textFile": "C:\\Users\\user\\OneDrive - postech.ac.kr\\바탕 화면\\motor-simulator-react\\data\\manual-extracts\\nanomotion-hr-motors-user-manual.txt",
+    "metaFile": "C:\\Users\\user\\OneDrive - postech.ac.kr\\바탕 화면\\motor-simulator-react\\data\\manual-extracts\\nanomotion-hr-motors-user-manual.json",
+    "pages": 50,
+    "textLength": 45320
+  }
+]

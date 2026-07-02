@@ -1,0 +1,91 @@
+{
+  "name": "motor-simulator-react",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Offline-capable desktop tool for motor sizing, load calculation, and product database management.",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "productName": "PAL 랩 스튜디오",
+  "author": "OpenAI Codex + user workspace",
+  "scripts": {
+    "dev": "vite --configLoader native",
+    "build": "vite build --configLoader native",
+    "build:icons": "node scripts/build-icons.mjs",
+    "lint": "eslint .",
+    "preview": "vite preview --configLoader native",
+    "desktop:dev": "node scripts/electron-dev.mjs",
+    "desktop:start": "node scripts/desktop-start.mjs",
+    "desktop:build": "node scripts/desktop-dist.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "occt-import-js": "^0.0.23",
+    "pdf-parse": "^2.4.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "electron": "^35.5.1",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.35.1",
+    "vite": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.postech.motorsimulator",
+    "productName": "PAL 랩 스튜디오",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PAL 랩 스튜디오",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "artifactName": "PAL-Lab-Studio-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "PAL-Lab-Studio-Portable-${version}-${arch}.${ext}"
+    }
+  }
+}
