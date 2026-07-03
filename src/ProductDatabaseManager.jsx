@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  BALL_SCREW_SAMPLE_ROW,
   ENCODER_SAMPLE_ROW,
   LM_GUIDE_SAMPLE_ROW,
+  MOTOR_SAMPLE_ROW,
+  PRODUCT_DB_CATEGORIES,
   PRODUCT_DB_CONFIG,
   PRODUCT_DB_TABS,
+  REDUCER_SAMPLE_ROW,
+  VACUUM_SAMPLE_ROW,
 } from "./data/productDbSchemas";
 
 const SAMPLE_ROWS = {
+  motor: MOTOR_SAMPLE_ROW,
+  reducer: REDUCER_SAMPLE_ROW,
+  ballScrew: BALL_SCREW_SAMPLE_ROW,
   lmGuide: LM_GUIDE_SAMPLE_ROW,
   encoder: ENCODER_SAMPLE_ROW,
+  vacuum: VACUUM_SAMPLE_ROW,
 };
 
 function stringifyDisplayValue(value) {
@@ -210,40 +219,66 @@ function getKeySpecSummary(item, config) {
     .join(" / ");
 }
 
-function getDatabaseByTab(tabId, lmGuideItems, encoderItems) {
-  return tabId === "lmGuide" ? lmGuideItems : encoderItems;
-}
-
-export default function ProductDatabaseManager({
-  onBack,
-  lmGuideItems,
-  encoderItems,
-  onUpdateLmGuideItems,
-  onUpdateEncoderItems,
-}) {
-  const [activeTab, setActiveTab] = useState("lmGuide");
+export default function ProductDatabaseManager({ onBack, productDatabases, onUpdateProductDatabase }) {
+  const [activeCategory, setActiveCategory] = useState(PRODUCT_DB_CATEGORIES[0].id);
+  const [activeTab, setActiveTab] = useState(PRODUCT_DB_CATEGORIES[0].tabs[0]);
   const [manufacturerFilter, setManufacturerFilter] = useState("all");
+  const [subCategoryFilter, setSubCategoryFilter] = useState("all");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [uploadState, setUploadState] = useState(null);
   const [hasSelectedManually, setHasSelectedManually] = useState(false);
 
   const config = PRODUCT_DB_CONFIG[activeTab];
-  const items = getDatabaseByTab(activeTab, lmGuideItems, encoderItems);
+  const currentCategory = PRODUCT_DB_CATEGORIES.find((category) => category.id === activeCategory);
+  const categoryTabs = PRODUCT_DB_TABS.filter((tab) => currentCategory.tabs.includes(tab.id));
+  const items = productDatabases[activeTab] ?? [];
+
+  function selectCategory(categoryId) {
+    const category = PRODUCT_DB_CATEGORIES.find((entry) => entry.id === categoryId);
+    setActiveCategory(categoryId);
+    setActiveTab(category.tabs[0]);
+  }
 
   const filteredItems = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
 
     return items.filter((item) => {
       const matchesManufacturer = manufacturerFilter === "all" || item.manufacturer === manufacturerFilter;
+      const matchesSubCategory =
+        !config.subCategoryField || subCategoryFilter === "all" || item[config.subCategoryField] === subCategoryFilter;
       const matchesSearch =
         keyword === "" ||
         String(item.series ?? "").toLowerCase().includes(keyword) ||
         String(item.model ?? "").toLowerCase().includes(keyword);
 
-      return matchesManufacturer && matchesSearch;
+      return matchesManufacturer && matchesSubCategory && matchesSearch;
     });
-  }, [items, manufacturerFilter, searchKeyword]);
+  }, [items, manufacturerFilter, subCategoryFilter, searchKeyword, config.subCategoryField]);
+
+  const comparisonGroups = useMemo(() => {
+    if (!config.compareField) {
+      return [{ key: null, label: null, items: filteredItems }];
+    }
+
+    const groupsByKey = new Map();
+
+    filteredItems.forEach((item) => {
+      const key = stringifyDisplayValue(item[config.compareField]);
+      if (!groupsByKey.has(key)) {
+        groupsByKey.set(key, []);
+      }
+      groupsByKey.get(key).push(item);
+    });
+
+    return Array.from(groupsByKey.entries())
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB, "ko"))
+      .map(([key, groupItems]) => ({
+        key,
+        label: key,
+        items: [...groupItems].sort((a, b) => String(a.manufacturer ?? "").localeCompare(String(b.manufacturer ?? ""), "ko")),
+      }));
+  }, [filteredItems, config.compareField]);
 
   const selectedItem = useMemo(() => {
     return filteredItems.find((item) => item.id === selectedId) ?? filteredItems[0] ?? null;
@@ -257,6 +292,7 @@ export default function ProductDatabaseManager({
 
   useEffect(() => {
     setManufacturerFilter("all");
+    setSubCategoryFilter("all");
     setSearchKeyword("");
     setSelectedId("");
     setUploadState(null);
@@ -325,11 +361,7 @@ export default function ProductDatabaseManager({
       return;
     }
 
-    if (activeTab === "lmGuide") {
-      onUpdateLmGuideItems((current) => [...current, ...uploadState.rows]);
-    } else {
-      onUpdateEncoderItems((current) => [...current, ...uploadState.rows]);
-    }
+    onUpdateProductDatabase(activeTab, (current) => [...current, ...uploadState.rows]);
 
     setUploadState(null);
   }
@@ -352,15 +384,29 @@ export default function ProductDatabaseManager({
         <div>
           <p className="page-kicker">PRODUCT DB MANAGER</p>
           <h1>제품 DB 관리</h1>
-          <p>LM가이드와 엔코더 카탈로그 데이터를 업로드하고, 검색하고, 추후 추천엔진과 연결할 수 있게 준비합니다.</p>
+          <p>연구소 주력 제품군을 대분류·중분류·소분류로 나눠 업로드하고, 검색하고, 추후 추천엔진과 연결할 수 있게 준비합니다.</p>
         </div>
         <button type="button" className="ghost-button" onClick={onBack}>
           대문으로 돌아가기
         </button>
       </header>
 
+      <div className="db-category-row">
+        {PRODUCT_DB_CATEGORIES.map((category) => (
+          <button
+            key={category.id}
+            type="button"
+            className={`db-category-tab${activeCategory === category.id ? " is-active" : ""}`}
+            onClick={() => selectCategory(category.id)}
+            title={category.description}
+          >
+            {category.label}
+          </button>
+        ))}
+      </div>
+
       <div className="db-tab-row">
-        {PRODUCT_DB_TABS.map((tab) => (
+        {categoryTabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -375,8 +421,22 @@ export default function ProductDatabaseManager({
       <main className="db-grid">
         <section className="card db-sidebar-card">
           <h2>{config.title} 필터</h2>
+          {config.subCategoryField ? (
+            <div className="field">
+              <span>{config.subCategoryLabel}</span>
+              <select value={subCategoryFilter} onChange={(event) => setSubCategoryFilter(event.target.value)}>
+                <option value="all">전체 {config.subCategoryLabel}</option>
+                {config.subCategories.map((subCategory) => (
+                  <option key={subCategory} value={subCategory}>
+                    {subCategory}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           <div className="field">
-            <span>제조사</span>
+            <span>제조사 (비교용 필터)</span>
             <select value={manufacturerFilter} onChange={(event) => setManufacturerFilter(event.target.value)}>
               <option value="all">전체 제조사</option>
               {config.manufacturers.map((manufacturer) => (
@@ -389,12 +449,17 @@ export default function ProductDatabaseManager({
 
           <div className="field">
             <span>시리즈/모델 검색</span>
-            <input
-              type="text"
-              value={searchKeyword}
-              placeholder={config.searchPlaceholder}
-              onChange={(event) => setSearchKeyword(event.target.value)}
-            />
+            <form className="db-search-row" onSubmit={(event) => event.preventDefault()}>
+              <input
+                type="text"
+                value={searchKeyword}
+                placeholder={config.searchPlaceholder}
+                onChange={(event) => setSearchKeyword(event.target.value)}
+              />
+              <button type="submit" className="button db-search-button">
+                검색
+              </button>
+            </form>
           </div>
 
           <div className="db-sidebar-summary">
@@ -416,25 +481,40 @@ export default function ProductDatabaseManager({
           <div className="card-section-header">
             <div>
               <h2>{config.title} 목록</h2>
-              <p>제조사, 모델명, 시리즈, 주요 사양, 카탈로그 링크를 빠르게 확인할 수 있습니다.</p>
+              <p>
+                {config.compareLabel
+                  ? `${config.compareLabel}이(가) 같은 항목끼리 묶어, 제조사별로 바로 비교할 수 있습니다.`
+                  : "제조사, 모델명, 시리즈, 주요 사양, 카탈로그 링크를 빠르게 확인할 수 있습니다."}
+              </p>
             </div>
           </div>
 
           <div className="db-list">
-            {filteredItems.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className={`db-list-item${selectedItem?.id === item.id ? " is-selected" : ""}`}
-                onClick={() => { setSelectedId(item.id); setHasSelectedManually(true); }}
-              >
-                <div className="db-list-item__head">
-                  <strong>{item.model}</strong>
-                  <span>{item.manufacturer}</span>
-                </div>
-                <p>{item.series}</p>
-                <small>{getKeySpecSummary(item, config)}</small>
-              </button>
+            {comparisonGroups.map((group) => (
+              <div className="db-list-group" key={group.key ?? "all"}>
+                {group.label ? (
+                  <div className="db-list-group__header">
+                    <span>{config.compareLabel}: {group.label}</span>
+                    <small>{group.items.length}개 제조사 비교</small>
+                  </div>
+                ) : null}
+
+                {group.items.map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={`db-list-item${selectedItem?.id === item.id ? " is-selected" : ""}`}
+                    onClick={() => { setSelectedId(item.id); setHasSelectedManually(true); }}
+                  >
+                    <div className="db-list-item__head">
+                      <strong>{item.model}</strong>
+                      <span>{item.manufacturer}</span>
+                    </div>
+                    <p>{item.series}</p>
+                    <small>{getKeySpecSummary(item, config)}</small>
+                  </button>
+                ))}
+              </div>
             ))}
 
             {filteredItems.length === 0 ? (

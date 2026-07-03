@@ -17,13 +17,63 @@ function PageLoader() {
 }
 import { LM_GUIDE_DATABASE } from "./data/lmGuideDatabase";
 import { ENCODER_DATABASE } from "./data/encoderDatabase";
-import { ENCODER_FIELDS, LM_GUIDE_FIELDS } from "./data/productDbSchemas";
+import { VACUUM_DATABASE } from "./data/vacuumDatabase";
+import { VACUUM_PUMP_DATABASE } from "./data/vacuumPumpDatabase";
+import { VACUUM_VALVE_DATABASE } from "./data/vacuumValveDatabase";
+import { VACUUM_MOTION_DATABASE } from "./data/vacuumMotionDatabase";
+import { MOTOR_DATABASE } from "./data/motorDatabase";
+import { REDUCER_DATABASE } from "./data/reducerDatabase";
+import { BALL_SCREW_DATABASE } from "./data/ballScrewDatabase";
+import {
+  BALL_SCREW_FIELDS,
+  ENCODER_FIELDS,
+  LM_GUIDE_FIELDS,
+  MOTOR_FIELDS,
+  REDUCER_FIELDS,
+  VACUUM_FIELDS,
+  VACUUM_PUMP_FIELDS,
+  VACUUM_VALVE_FIELDS,
+  VACUUM_MOTION_FIELDS,
+} from "./data/productDbSchemas";
 import "./App.css";
 
 const PRODUCT_DB_STORAGE_KEYS = {
+  motor: "motor-simulator-react:motor-db:v1",
+  reducer: "motor-simulator-react:reducer-db:v1",
+  ballScrew: "motor-simulator-react:ball-screw-db:v1",
   lmGuide: "motor-simulator-react:lm-guide-db:v1",
   encoder: "motor-simulator-react:encoder-db:v1",
+  vacuum: "motor-simulator-react:vacuum-db:v1",
+  vacuumPump: "motor-simulator-react:vacuum-pump-db:v1",
+  vacuumValve: "motor-simulator-react:vacuum-valve-db:v1",
+  vacuumMotion: "motor-simulator-react:vacuum-motion-db:v1",
 };
+
+const PRODUCT_DB_SEED = {
+  motor: MOTOR_DATABASE,
+  reducer: REDUCER_DATABASE,
+  ballScrew: BALL_SCREW_DATABASE,
+  lmGuide: LM_GUIDE_DATABASE,
+  encoder: ENCODER_DATABASE,
+  vacuum: VACUUM_DATABASE,
+  vacuumPump: VACUUM_PUMP_DATABASE,
+  vacuumValve: VACUUM_VALVE_DATABASE,
+  vacuumMotion: VACUUM_MOTION_DATABASE,
+};
+
+const PRODUCT_DB_FIELDS_BY_KEY = {
+  motor: MOTOR_FIELDS,
+  reducer: REDUCER_FIELDS,
+  ballScrew: BALL_SCREW_FIELDS,
+  lmGuide: LM_GUIDE_FIELDS,
+  encoder: ENCODER_FIELDS,
+  vacuum: VACUUM_FIELDS,
+  vacuumPump: VACUUM_PUMP_FIELDS,
+  vacuumValve: VACUUM_VALVE_FIELDS,
+  vacuumMotion: VACUUM_MOTION_FIELDS,
+};
+
+const PRODUCT_DB_KEYS = Object.keys(PRODUCT_DB_SEED);
 
 function sanitizeStoredDatabase(rawItems, fallbackItems, fields) {
   if (!Array.isArray(rawItems)) {
@@ -69,7 +119,7 @@ async function hydrateDesktopDatabase(databaseKey, fallbackItems, setter) {
   try {
     const savedItems = await window.desktopApp.readDatabase(databaseKey);
     if (savedItems) {
-      setter(sanitizeStoredDatabase(savedItems, fallbackItems, databaseKey === "lmGuide" ? LM_GUIDE_FIELDS : ENCODER_FIELDS));
+      setter(sanitizeStoredDatabase(savedItems, fallbackItems, PRODUCT_DB_FIELDS_BY_KEY[databaseKey]));
     }
   } catch (error) {
     console.warn(`Failed to read desktop database for ${databaseKey}.`, error);
@@ -113,7 +163,7 @@ const TOOLS = [
   {
     id: "db",
     title: "제품 DB 관리",
-    description: "LM가이드와 엔코더 제품 데이터를 업로드하고, 검색하고, 카탈로그 링크와 함께 관리합니다.",
+    description: "모터·감속기·볼스크류·LM가이드·엔코더·진공부품을 대분류·중분류·소분류로 나눠 관리합니다.",
     status: "사용 가능",
     caption: "Database Manager",
     actionLabel: "열기",
@@ -124,30 +174,35 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [motorPrefill, setMotorPrefill] = useState(null);
   const [databaseReady, setDatabaseReady] = useState(false);
-  const [lmGuideDatabase, setLmGuideDatabase] = useState(() =>
-    readStoredDatabase(PRODUCT_DB_STORAGE_KEYS.lmGuide, LM_GUIDE_DATABASE, LM_GUIDE_FIELDS),
-  );
-  const [encoderDatabase, setEncoderDatabase] = useState(() =>
-    readStoredDatabase(PRODUCT_DB_STORAGE_KEYS.encoder, ENCODER_DATABASE, ENCODER_FIELDS),
-  );
+  const [productDatabases, setProductDatabases] = useState(() => {
+    const initial = {};
+    PRODUCT_DB_KEYS.forEach((key) => {
+      initial[key] = readStoredDatabase(PRODUCT_DB_STORAGE_KEYS[key], PRODUCT_DB_SEED[key], PRODUCT_DB_FIELDS_BY_KEY[key]);
+    });
+    return initial;
+  });
+
+  function updateProductDatabase(key, updater) {
+    setProductDatabases((current) => ({
+      ...current,
+      [key]: typeof updater === "function" ? updater(current[key]) : updater,
+    }));
+  }
 
   useEffect(() => {
     let cancelled = false;
 
     async function hydrateDatabases() {
       if (typeof window !== "undefined" && window.desktopApp?.readDatabase) {
-        await Promise.all([
-          hydrateDesktopDatabase("lmGuide", LM_GUIDE_DATABASE, (items) => {
-            if (!cancelled) {
-              setLmGuideDatabase(items);
-            }
-          }),
-          hydrateDesktopDatabase("encoder", ENCODER_DATABASE, (items) => {
-            if (!cancelled) {
-              setEncoderDatabase(items);
-            }
-          }),
-        ]);
+        await Promise.all(
+          PRODUCT_DB_KEYS.map((key) =>
+            hydrateDesktopDatabase(key, PRODUCT_DB_SEED[key], (items) => {
+              if (!cancelled) {
+                setProductDatabases((current) => ({ ...current, [key]: items }));
+              }
+            }),
+          ),
+        );
       }
 
       if (!cancelled) {
@@ -167,30 +222,17 @@ export default function App() {
       return;
     }
 
-    if (typeof window !== "undefined" && window.desktopApp?.writeDatabase) {
-      window.desktopApp.writeDatabase("lmGuide", lmGuideDatabase).catch((error) => {
-        console.warn("Failed to persist LM guide database.", error);
-      });
-      return;
-    }
+    PRODUCT_DB_KEYS.forEach((key) => {
+      if (typeof window !== "undefined" && window.desktopApp?.writeDatabase) {
+        window.desktopApp.writeDatabase(key, productDatabases[key]).catch((error) => {
+          console.warn(`Failed to persist ${key} database.`, error);
+        });
+        return;
+      }
 
-    window.localStorage.setItem(PRODUCT_DB_STORAGE_KEYS.lmGuide, JSON.stringify(lmGuideDatabase));
-  }, [databaseReady, lmGuideDatabase]);
-
-  useEffect(() => {
-    if (!databaseReady) {
-      return;
-    }
-
-    if (typeof window !== "undefined" && window.desktopApp?.writeDatabase) {
-      window.desktopApp.writeDatabase("encoder", encoderDatabase).catch((error) => {
-        console.warn("Failed to persist encoder database.", error);
-      });
-      return;
-    }
-
-    window.localStorage.setItem(PRODUCT_DB_STORAGE_KEYS.encoder, JSON.stringify(encoderDatabase));
-  }, [databaseReady, encoderDatabase]);
+      window.localStorage.setItem(PRODUCT_DB_STORAGE_KEYS[key], JSON.stringify(productDatabases[key]));
+    });
+  }, [databaseReady, productDatabases]);
 
   if (page === "motor") {
     return (
@@ -219,10 +261,8 @@ export default function App() {
       <Suspense fallback={<PageLoader />}>
         <ProductDatabaseManager
           onBack={() => setPage("home")}
-          lmGuideItems={lmGuideDatabase}
-          encoderItems={encoderDatabase}
-          onUpdateLmGuideItems={setLmGuideDatabase}
-          onUpdateEncoderItems={setEncoderDatabase}
+          productDatabases={productDatabases}
+          onUpdateProductDatabase={updateProductDatabase}
         />
       </Suspense>
     );
@@ -296,7 +336,7 @@ export default function App() {
               <span className="home-mode-num">05</span>
               <span className="home-mode-name">
                 제품 DB 관리
-                <span className="home-mode-desc"> · LM가이드·엔코더 카탈로그 검색</span>
+                <span className="home-mode-desc"> · 모션 구동계·센서·진공부품 카탈로그 검색</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>

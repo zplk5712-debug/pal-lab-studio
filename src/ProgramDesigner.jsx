@@ -556,7 +556,7 @@ export default function ProgramDesigner({ onBack }) {
         <div>
           <p className="page-kicker">MODE 04</p>
           <h1>프로그램 설계소</h1>
-          <p>유형을 선택하면 바로 사용 가능한 프로그램을 만들어 드려요</p>
+          <p>유형을 선택하면 실행 가능한 프로토타입을 만들어 드려요</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {history.length > 0 && (

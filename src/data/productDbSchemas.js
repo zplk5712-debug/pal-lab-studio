@@ -42,8 +42,149 @@ export const ENCODER_FIELDS = [
   "note",
 ];
 
+export const VACUUM_FIELDS = [
+  "id",
+  "manufacturer",
+  "partType",
+  "series",
+  "model",
+  "flangeStandard",
+  "flangeSize",
+  "material",
+  "sealType",
+  "maxBakeoutTemp_C",
+  "leakRate_mbarLs",
+  "boltHoles",
+  "tubeOD_mm",
+  "weight_g",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
+export const MOTOR_FIELDS = [
+  "id",
+  "manufacturer",
+  "motorType",
+  "series",
+  "model",
+  "ratedTorque_Ncm",
+  "holdingTorque_Ncm",
+  "ratedSpeed_rpm",
+  "ratedVoltage_V",
+  "ratedCurrent_A",
+  "stepAngle_deg",
+  "frameSize_mm",
+  "shaftDiameter_mm",
+  "builtInEncoder",
+  "weight_kg",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
+export const REDUCER_FIELDS = [
+  "id",
+  "manufacturer",
+  "series",
+  "model",
+  "reducerType",
+  "reductionRatio",
+  "ratedTorque_Nm",
+  "maxTorque_Nm",
+  "backlash_arcmin",
+  "efficiency_pct",
+  "inputShaftDiameter_mm",
+  "outputShaftDiameter_mm",
+  "weight_kg",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
+export const BALL_SCREW_FIELDS = [
+  "id",
+  "manufacturer",
+  "series",
+  "model",
+  "shaftDiameter_mm",
+  "lead_mm",
+  "accuracyGrade",
+  "nutType",
+  "dynamicLoad_N",
+  "staticLoad_N",
+  "maxRotationSpeed_rpm",
+  "screwLength_mm",
+  "material",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
+export const VACUUM_PUMP_FIELDS = [
+  "id",
+  "manufacturer",
+  "pumpType",
+  "series",
+  "model",
+  "pumpingSpeed_Ls",
+  "ultimatePressure_mbar",
+  "inletFlangeSize",
+  "powerConsumption_W",
+  "noiseLevel_dB",
+  "coolingType",
+  "controllerIncluded",
+  "weight_kg",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
+export const VACUUM_VALVE_FIELDS = [
+  "id",
+  "manufacturer",
+  "valveType",
+  "series",
+  "model",
+  "flangeSize",
+  "actuationType",
+  "sealType",
+  "orificeSize_mm",
+  "maxBakeoutTemp_C",
+  "leakRate_mbarLs",
+  "weight_kg",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
+export const VACUUM_MOTION_FIELDS = [
+  "id",
+  "manufacturer",
+  "motionType",
+  "series",
+  "model",
+  "flangeSize",
+  "travelRange_mm",
+  "rotationRange_deg",
+  "actuationType",
+  "positioningAccuracy",
+  "maxBakeoutTemp_C",
+  "weight_kg",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
 export const LM_GUIDE_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
 export const ENCODER_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
+export const VACUUM_REQUIRED_FIELDS = ["id", "manufacturer", "partType", "model"];
+export const MOTOR_REQUIRED_FIELDS = ["id", "manufacturer", "motorType", "model"];
+export const REDUCER_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
+export const BALL_SCREW_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
+export const VACUUM_PUMP_REQUIRED_FIELDS = ["id", "manufacturer", "pumpType", "model"];
+export const VACUUM_VALVE_REQUIRED_FIELDS = ["id", "manufacturer", "valveType", "model"];
+export const VACUUM_MOTION_REQUIRED_FIELDS = ["id", "manufacturer", "motionType", "model"];
 
 export const LM_GUIDE_NUMERIC_FIELDS = [
   "dynamicLoad_N",
@@ -59,6 +200,68 @@ export const ENCODER_NUMERIC_FIELDS = [
   "maxSpeed_rpm",
   "outerDiameter_mm",
   "measuringLength_mm",
+];
+
+export const VACUUM_NUMERIC_FIELDS = [
+  "maxBakeoutTemp_C",
+  "leakRate_mbarLs",
+  "boltHoles",
+  "tubeOD_mm",
+  "weight_g",
+];
+
+export const MOTOR_NUMERIC_FIELDS = [
+  "ratedTorque_Ncm",
+  "holdingTorque_Ncm",
+  "ratedSpeed_rpm",
+  "ratedVoltage_V",
+  "ratedCurrent_A",
+  "stepAngle_deg",
+  "frameSize_mm",
+  "shaftDiameter_mm",
+  "weight_kg",
+];
+
+export const REDUCER_NUMERIC_FIELDS = [
+  "reductionRatio",
+  "ratedTorque_Nm",
+  "maxTorque_Nm",
+  "backlash_arcmin",
+  "efficiency_pct",
+  "inputShaftDiameter_mm",
+  "outputShaftDiameter_mm",
+  "weight_kg",
+];
+
+export const BALL_SCREW_NUMERIC_FIELDS = [
+  "shaftDiameter_mm",
+  "lead_mm",
+  "dynamicLoad_N",
+  "staticLoad_N",
+  "maxRotationSpeed_rpm",
+  "screwLength_mm",
+];
+
+export const VACUUM_PUMP_NUMERIC_FIELDS = [
+  "pumpingSpeed_Ls",
+  "ultimatePressure_mbar",
+  "powerConsumption_W",
+  "noiseLevel_dB",
+  "weight_kg",
+];
+
+export const VACUUM_VALVE_NUMERIC_FIELDS = [
+  "orificeSize_mm",
+  "maxBakeoutTemp_C",
+  "leakRate_mbarLs",
+  "weight_kg",
+];
+
+export const VACUUM_MOTION_NUMERIC_FIELDS = [
+  "travelRange_mm",
+  "rotationRange_deg",
+  "maxBakeoutTemp_C",
+  "weight_kg",
 ];
 
 export const LM_GUIDE_MANUFACTURERS = [
@@ -79,12 +282,195 @@ export const ENCODER_MANUFACTURERS = [
   "Nidec Avtron",
 ];
 
+export const VACUUM_MANUFACTURERS = [
+  "MDC Precision",
+  "Kurt J. Lesker",
+  "Pfeiffer Vacuum",
+  "VACOM",
+  "Nor-Cal Products",
+  "Duniway Stockroom",
+];
+
+export const VACUUM_PART_TYPES = [
+  "플랜지/피팅",
+  "챔버",
+  "러핑 부품",
+  "전기 피드스루",
+  "뷰포트/글래스",
+  "진공 브레이크",
+  "진공 측정",
+  "하드웨어/액세서리",
+];
+
+export const MOTOR_MANUFACTURERS = [
+  "Oriental Motor",
+  "Nanomotion",
+  "Physik Instrumente (PI)",
+  "Yaskawa",
+  "Panasonic",
+  "Faulhaber",
+];
+
+export const MOTOR_TYPES = [
+  "3상 스텝모터",
+  "2상 스텝모터",
+  "AC 서보모터",
+  "압전모터 (Nanomotion)",
+];
+
+export const REDUCER_MANUFACTURERS = [
+  "Harmonic Drive",
+  "Neugart",
+  "Apex Dynamics",
+  "Sumitomo",
+  "Nabtesco",
+  "Wittenstein",
+];
+
+export const BALL_SCREW_MANUFACTURERS = [
+  "THK",
+  "HIWIN",
+  "NSK",
+  "PMI",
+  "Bosch Rexroth",
+  "Nook Industries",
+];
+
+export const VACUUM_PUMP_MANUFACTURERS = [
+  "Edwards",
+  "Pfeiffer Vacuum",
+  "Agilent (Varian)",
+  "Leybold",
+  "Osaka Vacuum",
+  "Ulvac",
+  "PerkinElmer (Ultek)",
+  "Alpha-EVS",
+];
+
+export const VACUUM_PUMP_TYPES = [
+  "로터리 베인 펌프",
+  "드라이 스크롤 펌프",
+  "터보분자 펌프",
+  "이온 펌프",
+  "극저온(크라이오) 펌프",
+  "티타늄 서브리메이션 펌프",
+];
+
+export const VACUUM_VALVE_MANUFACTURERS = [
+  "VAT Vakuumventile",
+  "MDC Precision",
+  "Kurt J. Lesker",
+  "Pfeiffer Vacuum",
+  "VACOM",
+  "Nor-Cal Products",
+];
+
+export const VACUUM_VALVE_TYPES = [
+  "게이트 밸브",
+  "앵글 밸브",
+  "버터플라이 밸브",
+  "체크 밸브",
+  "벤트/릴리프 밸브",
+  "볼 밸브",
+];
+
+export const VACUUM_MOTION_MANUFACTURERS = [
+  "UHV Design",
+  "Huntington Mechanical Labs",
+  "MDC Precision",
+  "Kurt J. Lesker",
+  "VACOM",
+  "Thermionics",
+];
+
+export const VACUUM_MOTION_TYPES = [
+  "리니어 매니퓰레이터",
+  "로터리 매니퓰레이터",
+  "XYZ 매니퓰레이터",
+  "워블 스틱",
+  "벨로우즈 실 구동장치",
+  "트랜스퍼 암",
+];
+
 export const PRODUCT_DB_TABS = [
+  { id: "motor", label: "모터 DB" },
+  { id: "reducer", label: "감속기 DB" },
+  { id: "ballScrew", label: "볼스크류 DB" },
   { id: "lmGuide", label: "LM가이드 DB" },
   { id: "encoder", label: "엔코더 DB" },
+  { id: "vacuum", label: "진공부품 DB" },
+  { id: "vacuumPump", label: "진공펌프 DB" },
+  { id: "vacuumValve", label: "진공밸브 DB" },
+  { id: "vacuumMotion", label: "진공모션·매니퓰레이터 DB" },
+];
+
+export const PRODUCT_DB_CATEGORIES = [
+  {
+    id: "motion",
+    label: "모션 구동계",
+    description: "모션 설계 도우미가 추천하는 핵심 구동계 부품군",
+    tabs: ["motor", "reducer", "ballScrew", "lmGuide"],
+  },
+  {
+    id: "sensor",
+    label: "센서·피드백",
+    description: "위치·속도 피드백용 센서 부품군",
+    tabs: ["encoder"],
+  },
+  {
+    id: "vacuumComponents",
+    label: "진공부품",
+    description: "PAL UHV/HV 빔라인 표준에 맞춘 진공 부품군",
+    tabs: ["vacuum", "vacuumPump", "vacuumValve", "vacuumMotion"],
+  },
 ];
 
 export const PRODUCT_DB_CONFIG = {
+  motor: {
+    id: "motor",
+    title: "모터 DB",
+    fields: MOTOR_FIELDS,
+    requiredFields: MOTOR_REQUIRED_FIELDS,
+    numericFields: MOTOR_NUMERIC_FIELDS,
+    manufacturers: MOTOR_MANUFACTURERS,
+    sampleFileName: "motor-sample",
+    detailTitle: "모터 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["motorType", "ratedTorque_Ncm", "holdingTorque_Ncm", "ratedVoltage_V", "frameSize_mm"],
+    subCategoryField: "motorType",
+    subCategoryLabel: "모터 종류",
+    subCategories: MOTOR_TYPES,
+    compareField: "frameSize_mm",
+    compareLabel: "프레임 사이즈",
+  },
+  reducer: {
+    id: "reducer",
+    title: "감속기 DB",
+    fields: REDUCER_FIELDS,
+    requiredFields: REDUCER_REQUIRED_FIELDS,
+    numericFields: REDUCER_NUMERIC_FIELDS,
+    manufacturers: REDUCER_MANUFACTURERS,
+    sampleFileName: "reducer-sample",
+    detailTitle: "감속기 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["reducerType", "reductionRatio", "ratedTorque_Nm", "backlash_arcmin"],
+    compareField: "reductionRatio",
+    compareLabel: "감속비",
+  },
+  ballScrew: {
+    id: "ballScrew",
+    title: "볼스크류 DB",
+    fields: BALL_SCREW_FIELDS,
+    requiredFields: BALL_SCREW_REQUIRED_FIELDS,
+    numericFields: BALL_SCREW_NUMERIC_FIELDS,
+    manufacturers: BALL_SCREW_MANUFACTURERS,
+    sampleFileName: "ball-screw-sample",
+    detailTitle: "볼스크류 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["shaftDiameter_mm", "lead_mm", "accuracyGrade", "dynamicLoad_N"],
+    compareField: "shaftDiameter_mm",
+    compareLabel: "축 지름",
+  },
   lmGuide: {
     id: "lmGuide",
     title: "LM가이드 DB",
@@ -96,6 +482,8 @@ export const PRODUCT_DB_CONFIG = {
     detailTitle: "LM가이드 상세",
     searchPlaceholder: "시리즈 또는 모델명 검색",
     keySpecs: ["railSize", "blockType", "accuracyGrade", "dynamicLoad_N", "staticLoad_N"],
+    compareField: "railSize",
+    compareLabel: "레일 사이즈",
   },
   encoder: {
     id: "encoder",
@@ -108,6 +496,76 @@ export const PRODUCT_DB_CONFIG = {
     detailTitle: "엔코더 상세",
     searchPlaceholder: "시리즈 또는 모델명 검색",
     keySpecs: ["encoderType", "measurementType", "resolution", "interfaceType", "maxSpeed_rpm"],
+    compareField: "resolution",
+    compareLabel: "분해능",
+  },
+  vacuum: {
+    id: "vacuum",
+    title: "진공부품 DB",
+    fields: VACUUM_FIELDS,
+    requiredFields: VACUUM_REQUIRED_FIELDS,
+    numericFields: VACUUM_NUMERIC_FIELDS,
+    manufacturers: VACUUM_MANUFACTURERS,
+    sampleFileName: "vacuum-parts-sample",
+    detailTitle: "진공부품 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["partType", "flangeStandard", "flangeSize", "material", "sealType"],
+    subCategoryField: "partType",
+    subCategoryLabel: "부품 종류",
+    subCategories: VACUUM_PART_TYPES,
+    compareField: "flangeSize",
+    compareLabel: "플랜지 사이즈",
+  },
+  vacuumPump: {
+    id: "vacuumPump",
+    title: "진공펌프 DB",
+    fields: VACUUM_PUMP_FIELDS,
+    requiredFields: VACUUM_PUMP_REQUIRED_FIELDS,
+    numericFields: VACUUM_PUMP_NUMERIC_FIELDS,
+    manufacturers: VACUUM_PUMP_MANUFACTURERS,
+    sampleFileName: "vacuum-pump-sample",
+    detailTitle: "진공펌프 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["pumpType", "pumpingSpeed_Ls", "ultimatePressure_mbar", "inletFlangeSize"],
+    subCategoryField: "pumpType",
+    subCategoryLabel: "펌프 종류",
+    subCategories: VACUUM_PUMP_TYPES,
+    compareField: "inletFlangeSize",
+    compareLabel: "흡입 플랜지",
+  },
+  vacuumValve: {
+    id: "vacuumValve",
+    title: "진공밸브 DB",
+    fields: VACUUM_VALVE_FIELDS,
+    requiredFields: VACUUM_VALVE_REQUIRED_FIELDS,
+    numericFields: VACUUM_VALVE_NUMERIC_FIELDS,
+    manufacturers: VACUUM_VALVE_MANUFACTURERS,
+    sampleFileName: "vacuum-valve-sample",
+    detailTitle: "진공밸브 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["valveType", "flangeSize", "actuationType", "sealType"],
+    subCategoryField: "valveType",
+    subCategoryLabel: "밸브 종류",
+    subCategories: VACUUM_VALVE_TYPES,
+    compareField: "flangeSize",
+    compareLabel: "플랜지 사이즈",
+  },
+  vacuumMotion: {
+    id: "vacuumMotion",
+    title: "진공모션·매니퓰레이터 DB",
+    fields: VACUUM_MOTION_FIELDS,
+    requiredFields: VACUUM_MOTION_REQUIRED_FIELDS,
+    numericFields: VACUUM_MOTION_NUMERIC_FIELDS,
+    manufacturers: VACUUM_MOTION_MANUFACTURERS,
+    sampleFileName: "vacuum-motion-sample",
+    detailTitle: "진공모션·매니퓰레이터 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["motionType", "flangeSize", "travelRange_mm", "rotationRange_deg"],
+    subCategoryField: "motionType",
+    subCategoryLabel: "모션 종류",
+    subCategories: VACUUM_MOTION_TYPES,
+    compareField: "flangeSize",
+    compareLabel: "플랜지 사이즈",
   },
 };
 
@@ -130,6 +588,140 @@ export const LM_GUIDE_SAMPLE_ROW = {
   material: "bearing_steel",
   application: "general_precision_motion",
   catalogUrl: "https://www.hiwin.com/",
+  note: "catalog_check_required",
+};
+
+export const MOTOR_SAMPLE_ROW = {
+  id: "motor-oriental-blm-sample",
+  manufacturer: "Oriental Motor",
+  motorType: "3상 스텝모터",
+  series: "BLE2",
+  model: "BLM5200HP-GFS",
+  ratedTorque_Ncm: "catalog_check_required",
+  holdingTorque_Ncm: null,
+  ratedSpeed_rpm: null,
+  ratedVoltage_V: 200,
+  ratedCurrent_A: "catalog_check_required",
+  stepAngle_deg: null,
+  frameSize_mm: 60,
+  shaftDiameter_mm: null,
+  builtInEncoder: "catalog_check_required",
+  weight_kg: null,
+  application: "precision_stage_drive",
+  catalogUrl: "https://www.orientalmotor.com/",
+  note: "catalog_check_required",
+};
+
+export const REDUCER_SAMPLE_ROW = {
+  id: "reducer-harmonic-sample",
+  manufacturer: "Harmonic Drive",
+  series: "CSF",
+  model: "CSF-25-100-2A",
+  reducerType: "harmonic_drive",
+  reductionRatio: 100,
+  ratedTorque_Nm: "catalog_check_required",
+  maxTorque_Nm: null,
+  backlash_arcmin: "catalog_check_required",
+  efficiency_pct: null,
+  inputShaftDiameter_mm: null,
+  outputShaftDiameter_mm: null,
+  weight_kg: null,
+  application: "precision_positioning_gearhead",
+  catalogUrl: "https://www.harmonicdrive.net/",
+  note: "catalog_check_required",
+};
+
+export const BALL_SCREW_SAMPLE_ROW = {
+  id: "ballscrew-thk-sample",
+  manufacturer: "THK",
+  series: "BNK",
+  model: "BNK1605",
+  shaftDiameter_mm: 16,
+  lead_mm: 5,
+  accuracyGrade: "catalog_check_required",
+  nutType: "catalog_check_required",
+  dynamicLoad_N: null,
+  staticLoad_N: null,
+  maxRotationSpeed_rpm: null,
+  screwLength_mm: null,
+  material: "bearing_steel",
+  application: "precision_linear_drive",
+  catalogUrl: "https://www.thk.com/",
+  note: "catalog_check_required",
+};
+
+export const VACUUM_SAMPLE_ROW = {
+  id: "vac-mdc-cf275-304ss",
+  manufacturer: "MDC Precision",
+  partType: "플랜지/피팅",
+  series: "ConFlat (CF)",
+  model: "CF275-304SS",
+  flangeStandard: "CF",
+  flangeSize: "DN40CF (2.75in)",
+  material: "304_stainless_steel",
+  sealType: "copper_gasket_metal_seal",
+  maxBakeoutTemp_C: "catalog_check_required",
+  leakRate_mbarLs: "catalog_check_required",
+  boltHoles: 6,
+  tubeOD_mm: null,
+  weight_g: null,
+  application: "uhv_flange_connection",
+  catalogUrl: "https://www.mdcprecision.com/categories/vacuum-flanges-and-fittings",
+  note: "catalog_check_required",
+};
+
+export const VACUUM_PUMP_SAMPLE_ROW = {
+  id: "vacpump-edwards-nxds-sample",
+  manufacturer: "Edwards",
+  pumpType: "드라이 스크롤 펌프",
+  series: "nXDS",
+  model: "nXDS10i",
+  pumpingSpeed_Ls: "catalog_check_required",
+  ultimatePressure_mbar: "catalog_check_required",
+  inletFlangeSize: "KF25",
+  powerConsumption_W: null,
+  noiseLevel_dB: null,
+  coolingType: "air_cooled",
+  controllerIncluded: "catalog_check_required",
+  weight_kg: null,
+  application: "dry_roughing_pump",
+  catalogUrl: "https://www.edwardsvacuum.com/",
+  note: "catalog_check_required",
+};
+
+export const VACUUM_VALVE_SAMPLE_ROW = {
+  id: "vacvalve-vat-gate-sample",
+  manufacturer: "VAT Vakuumventile",
+  valveType: "게이트 밸브",
+  series: "Series 10",
+  model: "10836-KE44",
+  flangeSize: "DN40CF (2.75in)",
+  actuationType: "pneumatic",
+  sealType: "elastomer",
+  orificeSize_mm: null,
+  maxBakeoutTemp_C: "catalog_check_required",
+  leakRate_mbarLs: "catalog_check_required",
+  weight_kg: null,
+  application: "uhv_isolation_valve",
+  catalogUrl: "https://www.vatvalve.com/",
+  note: "catalog_check_required",
+};
+
+export const VACUUM_MOTION_SAMPLE_ROW = {
+  id: "vacmotion-uhvdesign-linear-sample",
+  manufacturer: "UHV Design",
+  motionType: "리니어 매니퓰레이터",
+  series: "MDC-LT",
+  model: "LT100-DN40CF",
+  flangeSize: "DN40CF (2.75in)",
+  travelRange_mm: 100,
+  rotationRange_deg: null,
+  actuationType: "manual_micrometer",
+  positioningAccuracy: "catalog_check_required",
+  maxBakeoutTemp_C: "catalog_check_required",
+  weight_kg: null,
+  application: "sample_positioning_uhv",
+  catalogUrl: "https://www.uhvdesign.com/",
   note: "catalog_check_required",
 };
 
