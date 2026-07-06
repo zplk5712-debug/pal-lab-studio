@@ -9,7 +9,7 @@ export const MANUAL_LOAD_INPUT_OPTIONS = [
   { value: "force", label: "하중(N) 입력" },
 ];
 
-export const MODEL_FILE_EXTENSIONS = [".stl", ".step", ".stp"];
+export const MODEL_FILE_EXTENSIONS = [".step", ".stp"];
 
 export const SHAPE_OPTIONS = [
   {

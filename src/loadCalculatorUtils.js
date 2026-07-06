@@ -11,31 +11,6 @@ function m3ToMm3(value) {
   return value * MM3_PER_M3;
 }
 
-function getBoundingBoxMetrics(bounds) {
-  if (!bounds) {
-    return {
-      text: "",
-      volumeM3: null,
-      width: 0,
-      depth: 0,
-      height: 0,
-    };
-  }
-
-  const width = Math.max(0, bounds.maxX - bounds.minX);
-  const depth = Math.max(0, bounds.maxY - bounds.minY);
-  const height = Math.max(0, bounds.maxZ - bounds.minZ);
-  const volumeM3 = mm3ToM3(width * depth * height);
-
-  return {
-    text: formatBoundingBox(bounds),
-    volumeM3,
-    width,
-    depth,
-    height,
-  };
-}
-
 function getShapeConfig(shape) {
   return SHAPE_OPTIONS.find((item) => item.value === shape) ?? SHAPE_OPTIONS[0];
 }
@@ -65,156 +40,6 @@ function getAssemblyModelVolumeM3(form, assemblyQuantity = 1) {
 
     return sum + mm3ToM3(partVolumeMm3) * partCount * assemblyQuantity;
   }, 0);
-}
-
-function formatBoundingBox(bounds) {
-  if (!bounds) {
-    return "";
-  }
-
-  const width = bounds.maxX - bounds.minX;
-  const depth = bounds.maxY - bounds.minY;
-  const height = bounds.maxZ - bounds.minZ;
-
-  return `${formatLoadNumber(width, 2)} × ${formatLoadNumber(depth, 2)} × ${formatLoadNumber(height, 2)} mm`;
-}
-
-function detectBinaryStl(arrayBuffer) {
-  if (arrayBuffer.byteLength < 84) {
-    return false;
-  }
-
-  const view = new DataView(arrayBuffer);
-  const triangleCount = view.getUint32(80, true);
-  return 84 + triangleCount * 50 === arrayBuffer.byteLength;
-}
-
-function updateBounds(bounds, x, y, z) {
-  if (!bounds) {
-    return { minX: x, maxX: x, minY: y, maxY: y, minZ: z, maxZ: z };
-  }
-
-  return {
-    minX: Math.min(bounds.minX, x),
-    maxX: Math.max(bounds.maxX, x),
-    minY: Math.min(bounds.minY, y),
-    maxY: Math.max(bounds.maxY, y),
-    minZ: Math.min(bounds.minZ, z),
-    maxZ: Math.max(bounds.maxZ, z),
-  };
-}
-
-function signedTriangleVolume(v0, v1, v2) {
-  return (
-    (v0.x * (v1.y * v2.z - v1.z * v2.y) -
-      v0.y * (v1.x * v2.z - v1.z * v2.x) +
-      v0.z * (v1.x * v2.y - v1.y * v2.x)) /
-    6
-  );
-}
-
-function parseBinaryStl(arrayBuffer) {
-  const view = new DataView(arrayBuffer);
-  const triangleCount = view.getUint32(80, true);
-  let offset = 84;
-  let volumeMm3 = 0;
-  let bounds = null;
-
-  for (let index = 0; index < triangleCount; index += 1) {
-    offset += 12;
-
-    const v0 = {
-      x: view.getFloat32(offset, true),
-      y: view.getFloat32(offset + 4, true),
-      z: view.getFloat32(offset + 8, true),
-    };
-    offset += 12;
-
-    const v1 = {
-      x: view.getFloat32(offset, true),
-      y: view.getFloat32(offset + 4, true),
-      z: view.getFloat32(offset + 8, true),
-    };
-    offset += 12;
-
-    const v2 = {
-      x: view.getFloat32(offset, true),
-      y: view.getFloat32(offset + 4, true),
-      z: view.getFloat32(offset + 8, true),
-    };
-    offset += 14;
-
-    volumeMm3 += signedTriangleVolume(v0, v1, v2);
-    bounds = updateBounds(bounds, v0.x, v0.y, v0.z);
-    bounds = updateBounds(bounds, v1.x, v1.y, v1.z);
-    bounds = updateBounds(bounds, v2.x, v2.y, v2.z);
-  }
-
-  const detectedVolumeM3 = mm3ToM3(Math.abs(volumeMm3));
-  const boundingMetrics = getBoundingBoxMetrics(bounds);
-
-  return {
-    volumeM3: detectedVolumeM3,
-    boundingBox: boundingMetrics.text,
-    boundingBoxVolumeM3: boundingMetrics.volumeM3,
-    volumeFillRatio:
-      boundingMetrics.volumeM3 && boundingMetrics.volumeM3 > 0
-        ? detectedVolumeM3 / boundingMetrics.volumeM3
-        : null,
-    unit: "mm",
-    notes: ["STL 메쉬를 기준으로 체적을 자동 계산했습니다."],
-    status: "자동 체적 계산 완료",
-  };
-}
-
-function parseAsciiStl(text) {
-  const vertexRegex =
-    /vertex\s+([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s+([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s+([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)/g;
-  const vertices = [];
-  let match = vertexRegex.exec(text);
-
-  while (match) {
-    vertices.push({
-      x: Number(match[1]),
-      y: Number(match[2]),
-      z: Number(match[3]),
-    });
-    match = vertexRegex.exec(text);
-  }
-
-  let volumeMm3 = 0;
-  let bounds = null;
-
-  for (let index = 0; index < vertices.length; index += 3) {
-    const v0 = vertices[index];
-    const v1 = vertices[index + 1];
-    const v2 = vertices[index + 2];
-
-    if (!v0 || !v1 || !v2) {
-      break;
-    }
-
-    volumeMm3 += signedTriangleVolume(v0, v1, v2);
-    bounds = updateBounds(bounds, v0.x, v0.y, v0.z);
-    bounds = updateBounds(bounds, v1.x, v1.y, v1.z);
-    bounds = updateBounds(bounds, v2.x, v2.y, v2.z);
-  }
-
-  const detectedVolumeM3 = mm3ToM3(Math.abs(volumeMm3));
-  const boundingMetrics = getBoundingBoxMetrics(bounds);
-
-  return {
-    volumeM3: detectedVolumeM3,
-    boundingBox: boundingMetrics.text,
-    boundingBoxVolumeM3: boundingMetrics.volumeM3,
-    volumeFillRatio:
-      boundingMetrics.volumeM3 && boundingMetrics.volumeM3 > 0
-        ? detectedVolumeM3 / boundingMetrics.volumeM3
-        : null,
-    unit: "mm",
-    notes: ["ASCII STL 메쉬를 기준으로 체적을 자동 계산했습니다."],
-    status: "자동 체적 계산 완료",
-  };
 }
 
 function inferStepLengthUnit(text) {
@@ -293,21 +118,168 @@ function extractStepVolumeCandidatesM3(text, lengthUnit) {
   return [...new Set(values)];
 }
 
-function extractStepAssemblyParts(text) {
-  const productMatches = [...text.matchAll(/PRODUCT\s*\(\s*'([^']*)'/gi)];
-  const productNames = productMatches
-    .map((match) => decodeStepName((match[1] || "").trim(), "Unnamed part"))
-    .filter((name) => name && name.toUpperCase() !== "NONE");
+function parseStepEntities(text) {
+  const entities = new Map();
+  const entityRegex = /#(\d+)\s*=\s*([A-Z0-9_]+)\s*\(([^;]*)\)\s*;/g;
+  let match = entityRegex.exec(text);
 
-  const counts = new Map();
+  while (match) {
+    entities.set(Number(match[1]), { type: match[2], args: match[3] });
+    match = entityRegex.exec(text);
+  }
 
-  productNames.forEach((name) => {
-    counts.set(name, (counts.get(name) ?? 0) + 1);
+  return entities;
+}
+
+function extractRefIds(argsText) {
+  return [...argsText.matchAll(/#(\d+)/g)].map((match) => Number(match[1]));
+}
+
+function extractQuotedStrings(argsText) {
+  return [...argsText.matchAll(/'([^']*)'/g)].map((match) => match[1]);
+}
+
+function buildStepAssemblyGraph(entities) {
+  const formationOfDefinition = new Map();
+  const productOfFormation = new Map();
+  const nameOfProduct = new Map();
+  const assemblyEdges = [];
+
+  entities.forEach(({ type, args }, id) => {
+    if (type === "PRODUCT_DEFINITION") {
+      const refs = extractRefIds(args);
+
+      if (refs.length > 0) {
+        formationOfDefinition.set(id, refs[0]);
+      }
+
+      return;
+    }
+
+    if (
+      type === "PRODUCT_DEFINITION_FORMATION" ||
+      type === "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE"
+    ) {
+      const refs = extractRefIds(args);
+
+      if (refs.length > 0) {
+        productOfFormation.set(id, refs[0]);
+      }
+
+      return;
+    }
+
+    if (type === "PRODUCT") {
+      const strings = extractQuotedStrings(args);
+      const name = decodeStepName((strings[1] || strings[0] || "").trim(), "");
+
+      if (name) {
+        nameOfProduct.set(id, name);
+      }
+
+      return;
+    }
+
+    if (type === "NEXT_ASSEMBLY_USAGE_OCCURRENCE") {
+      const refs = extractRefIds(args);
+
+      if (refs.length >= 2) {
+        assemblyEdges.push({ relating: refs[0], related: refs[1] });
+      }
+    }
   });
 
-  const parts = [...counts.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
+  const resolveProductName = (definitionId) => {
+    const formationId = formationOfDefinition.get(definitionId);
+
+    if (formationId === undefined) {
+      return undefined;
+    }
+
+    const productId = productOfFormation.get(formationId);
+
+    if (productId === undefined) {
+      return undefined;
+    }
+
+    return nameOfProduct.get(productId);
+  };
+
+  return { assemblyEdges, formationOfDefinition, resolveProductName };
+}
+
+function countAssemblyInstancesByUsageTree(text) {
+  const entities = parseStepEntities(text);
+  const { assemblyEdges, formationOfDefinition, resolveProductName } = buildStepAssemblyGraph(entities);
+
+  if (assemblyEdges.length === 0) {
+    return null;
+  }
+
+  const childrenByParent = new Map();
+  const relatedIds = new Set();
+
+  assemblyEdges.forEach(({ relating, related }) => {
+    if (!childrenByParent.has(relating)) {
+      childrenByParent.set(relating, []);
+    }
+
+    childrenByParent.get(relating).push(related);
+    relatedIds.add(related);
+  });
+
+  const rootIds = [...formationOfDefinition.keys()].filter((id) => !relatedIds.has(id));
+  const quantityByName = new Map();
+  const MAX_DEPTH = 25;
+
+  const traverse = (definitionId, depth) => {
+    if (depth > MAX_DEPTH) {
+      return;
+    }
+
+    const children = childrenByParent.get(definitionId);
+
+    if (!children || children.length === 0) {
+      const name = resolveProductName(definitionId);
+
+      if (name) {
+        quantityByName.set(name, (quantityByName.get(name) ?? 0) + 1);
+      }
+
+      return;
+    }
+
+    children.forEach((childId) => traverse(childId, depth + 1));
+  };
+
+  rootIds.forEach((rootId) => traverse(rootId, 0));
+
+  return quantityByName.size > 0 ? quantityByName : null;
+}
+
+function extractStepAssemblyParts(text) {
+  const quantityByName = countAssemblyInstancesByUsageTree(text);
+  let parts;
+  const usedAssemblyTree = quantityByName !== null;
+
+  if (usedAssemblyTree) {
+    parts = [...quantityByName.entries()].map(([name, count]) => ({ name, count }));
+  } else {
+    const productMatches = [...text.matchAll(/PRODUCT\s*\(\s*'([^']*)'/gi)];
+    const productNames = productMatches
+      .map((match) => decodeStepName((match[1] || "").trim(), "Unnamed part"))
+      .filter((name) => name && name.toUpperCase() !== "NONE");
+
+    const counts = new Map();
+
+    productNames.forEach((name) => {
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    });
+
+    parts = [...counts.entries()].map(([name, count]) => ({ name, count }));
+  }
+
+  parts = parts.sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
 
   const uniquePartCount = parts.length;
   const totalInstances = parts.reduce((sum, item) => sum + item.count, 0);
@@ -319,6 +291,7 @@ function extractStepAssemblyParts(text) {
     uniquePartCount,
     totalInstances,
     parts,
+    usedAssemblyTree,
   };
 }
 
@@ -344,7 +317,11 @@ function parseStepText(text, fileName) {
   }
 
   if (assembly.assemblyType === "assembly") {
-    notes.push(`조립도로 인식했습니다. 고유 부품 ${assembly.uniquePartCount}종입니다.`);
+    notes.push(
+      assembly.usedAssemblyTree
+        ? `조립 트리(NEXT_ASSEMBLY_USAGE_OCCURRENCE)를 분석해 고유 부품 ${assembly.uniquePartCount}종, 총 ${assembly.totalInstances}개 인스턴스를 인식했습니다.`
+        : `조립도로 인식했습니다. 고유 부품 ${assembly.uniquePartCount}종입니다.`,
+    );
   } else {
     notes.push("단일 파트 STEP으로 인식했습니다.");
   }
@@ -429,9 +406,19 @@ export function getMaterialOption(materialKey) {
   return MATERIAL_OPTIONS.find((item) => item.key === materialKey) ?? MATERIAL_OPTIONS[0];
 }
 
+function getModelAnalyzerEndpoint() {
+  const remoteUrl = import.meta.env.VITE_MODEL_ANALYZER_URL;
+
+  if (remoteUrl) {
+    return `${remoteUrl.replace(/\/$/, "")}/analyze-model`;
+  }
+
+  return "/api/analyze-model";
+}
+
 export async function analyzeModelOnServer(file) {
   const arrayBuffer = await file.arrayBuffer();
-  const response = await fetch("/api/analyze-model", {
+  const response = await fetch(getModelAnalyzerEndpoint(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -454,39 +441,6 @@ export async function analyzeModelOnServer(file) {
 
 export async function readModelFile(file) {
   const extension = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
-
-  if (extension === ".stl") {
-    const arrayBuffer = await file.arrayBuffer();
-    const parsed = detectBinaryStl(arrayBuffer)
-      ? parseBinaryStl(arrayBuffer)
-      : parseAsciiStl(new TextDecoder("utf-8").decode(arrayBuffer));
-
-    return {
-      modelFileName: file.name,
-      modelFileType: extension.toUpperCase().slice(1),
-      modelFileSizeBytes: file.size,
-      modelPartName: file.name.replace(/\.[^.]+$/, ""),
-      modelAnalysisSource: "브라우저 로컬 해석",
-      modelDetectedUnit: parsed.unit,
-      modelDetectedVolumeM3: parsed.volumeM3,
-      modelBoundingBox: parsed.boundingBox,
-      modelBoundingBoxVolumeM3: parsed.boundingBoxVolumeM3 ?? null,
-      modelVolumeFillRatio: parsed.volumeFillRatio ?? null,
-      modelStatus: parsed.status,
-      modelNotes: parsed.notes,
-      modelAssemblyType: "single",
-      modelPartCount: 1,
-      modelPartItems: [
-        {
-          name: file.name.replace(/\.[^.]+$/, ""),
-          count: 1,
-          materialKey: "al6061",
-          volumeMm3: parsed.volumeM3 ? String(Math.round(m3ToMm3(parsed.volumeM3))) : "",
-          volumeSource: parsed.volumeM3 ? "auto" : "none",
-        },
-      ],
-    };
-  }
 
   if (extension === ".step" || extension === ".stp") {
     const text = await file.text();
@@ -511,7 +465,7 @@ export async function readModelFile(file) {
     };
   }
 
-  throw new Error("지원하지 않는 파일 형식입니다. STL, STEP, STP만 업로드할 수 있습니다.");
+  throw new Error("지원하지 않는 파일 형식입니다. STEP, STP만 업로드할 수 있습니다.");
 }
 
 export function validateLoadForm(form) {

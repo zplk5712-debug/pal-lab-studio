@@ -334,7 +334,7 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
           <p className="page-kicker">Load Calculator</p>
           <h1>하중 계산</h1>
           <p>
-            직접 입력, 수동 입력, 모델링 파일 업로드(STL, STEP, STP) 기준으로 여러
+            직접 입력, 수동 입력, 모델링 파일 업로드(STEP, STP) 기준으로 여러
             항목의 하중을 합산 계산합니다.
           </p>
         </div>
@@ -1186,7 +1186,7 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
             <div className="empty-box empty-box--guide">
               <h3>계산 안내</h3>
               <div className="load-formula-list">
-                <p><strong>모델링 파일 인식</strong> — STL은 메쉬로 체적을 자동 계산하고, STEP/STP는 조립도·부품명·체적 메타데이터를 우선 읽습니다.</p>
+                <p><strong>모델링 파일 인식</strong> — STEP/STP 파일의 조립 트리를 분석해 부품명·수량·체적 메타데이터를 읽습니다.</p>
                 <p><strong>여러 항목 합산</strong> — 각 항목을 개별 계산한 뒤 총합으로 다시 합산합니다. 수동 입력은 질량·하중 기준으로 바로 환산합니다.</p>
                 <p><strong>기본 공식</strong> — 질량 = 체적 × 밀도, 중량(N) = 질량 × 9.81, 안전율 반영 하중(N) = 중량 × 안전율</p>
               </div>
