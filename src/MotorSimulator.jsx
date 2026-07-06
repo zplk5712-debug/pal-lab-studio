@@ -205,6 +205,19 @@ export default function MotorSimulator({ onBack, prefill }) {
 
   const runWebSearch = async (params) => {
     setWebSearchParams(params);
+
+    // /api/web-search-* 는 로컬 개발 서버(vite dev)의 미들웨어에서만 동작합니다.
+    // 배포된 정적 사이트에서는 백엔드가 없어 SPA 폴백(index.html)이 대신 응답하므로
+    // 매번 느린 요청 후 JSON 파싱 에러만 발생합니다 — 배포 환경에서는 아예 건너뜁니다.
+    if (!import.meta.env.DEV) {
+      setWebSearchStatus("idle");
+      setWebSearchError("");
+      setWebRecommendations([]);
+      setWebManuals([]);
+      setWebCandidateProducts([]);
+      return { recommendations: [], manuals: [], candidates: [], error: "" };
+    }
+
     setWebSearchStatus("loading");
     setWebSearchError("");
     setWebRecommendations([]);

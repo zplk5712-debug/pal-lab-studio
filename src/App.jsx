@@ -231,6 +231,22 @@ export default function App() {
     }));
   }
 
+  // 홈 화면이 자리잡은 뒤 유휴 시간에 모든 도구 코드를 미리 받아둠
+  // (호버가 발생하지 않는 터치/빠른 클릭에서도 이동이 즉시 이뤄지도록)
+  useEffect(() => {
+    if (page !== "home") {
+      return;
+    }
+
+    const idleId = (window.requestIdleCallback ?? ((cb) => setTimeout(cb, 1200)))(() => {
+      Object.keys(PAGE_PRELOADERS).forEach((pageId) => preloadPage(pageId));
+    });
+
+    return () => {
+      (window.cancelIdleCallback ?? clearTimeout)(idleId);
+    };
+  }, [page]);
+
   useEffect(() => {
     let cancelled = false;
 

@@ -107,7 +107,7 @@ const SimulatorProductsPanel = memo(function SimulatorProductsPanel({
               <div className="empty-box"><p>계산 후 비교 후보 상세가 여기에 표시됩니다.</p></div>
             )}
 
-            {result && (
+            {result && import.meta.env.DEV && (
               <div className="web-search-box">
                 <div className="web-search-box__header">
                   <div>
