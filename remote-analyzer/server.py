@@ -7,7 +7,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from analyzer import analyze_with_freecad  # noqa: E402
+from analyzer import analyze_with_opencascade  # noqa: E402
 
 MAX_BODY_BYTES = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = (".step", ".stp")
@@ -73,7 +73,7 @@ class AnalyzerRequestHandler(BaseHTTPRequestHandler):
 
             try:
                 with analysis_lock:
-                    result = analyze_with_freecad(temp_path, file_name, file_size_bytes)
+                    result = analyze_with_opencascade(temp_path, file_name, file_size_bytes)
             finally:
                 try:
                     os.remove(temp_path)
@@ -91,7 +91,7 @@ class AnalyzerRequestHandler(BaseHTTPRequestHandler):
 def main():
     port = int(os.environ.get("PORT", "8080"))
     server = ThreadingHTTPServer(("0.0.0.0", port), AnalyzerRequestHandler)
-    print(f"FreeCAD remote analyzer listening on port {port}", flush=True)
+    print(f"OpenCascade remote analyzer listening on port {port}", flush=True)
     server.serve_forever()
 
 

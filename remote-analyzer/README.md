@@ -1,7 +1,11 @@
-# FreeCAD 원격 분석 서버
+# OpenCascade(pythonocc-core) 원격 분석 서버
 
-배포된 웹사이트(Netlify)에서도 STEP/STP 조립품의 체적을 FreeCAD로 자동 계산하기 위한
+배포된 웹사이트(Netlify)에서도 STEP/STP 조립품의 체적을 자동 계산하기 위한
 독립 서버입니다. Render.com 같은 컨테이너 호스팅에 Docker로 배포합니다.
+
+FreeCAD(GUI 데스크톱 앱)를 헤드리스 서버에서 실행하는 시도는 트레이스백 없이
+조용히 죽는 문제가 반복되어 포기했고, GUI 의존성이 전혀 없는 OpenCascade
+파이썬 바인딩(pythonocc-core)으로 교체했습니다.
 
 ## Render.com 배포 방법
 
@@ -14,6 +18,8 @@
    - **Instance Type**: `Free`
 5. 배포가 끝나면 `https://<서비스이름>.onrender.com` 형태의 URL이 생깁니다.
    `https://<서비스이름>.onrender.com/health` 로 접속해서 `{"status":"ok"}` 가 나오면 정상입니다.
+
+conda 기반 이미지라 첫 빌드는 시간이 좀 걸릴 수 있습니다 (보통 5~10분).
 
 ## Netlify에 연결하기
 
