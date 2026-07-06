@@ -1,12 +1,40 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 
-// 코드 분할 — 각 모듈은 해당 탭을 열 때만 로드됨
-const MotorSimulator         = lazy(() => import("./MotorSimulator"));
-const LoadCalculator         = lazy(() => import("./LoadCalculator"));
-const ProductDatabaseManager = lazy(() => import("./ProductDatabaseManager"));
-const ThermalAnalyzer        = lazy(() => import("./ThermalAnalyzer"));
-const ProgramDesigner        = lazy(() => import("./ProgramDesigner"));
-const FeedbackBoard          = lazy(() => import("./FeedbackBoard"));
+// 코드 분할 — 각 모듈은 해당 탭을 열 때만 로드됨 (단, 카드에 마우스를 올리면 미리 받아둠)
+const loadMotorSimulator         = () => import("./MotorSimulator");
+const loadLoadCalculator         = () => import("./LoadCalculator");
+const loadProductDatabaseManager = () => import("./ProductDatabaseManager");
+const loadThermalAnalyzer        = () => import("./ThermalAnalyzer");
+const loadProgramDesigner        = () => import("./ProgramDesigner");
+const loadFeedbackBoard          = () => import("./FeedbackBoard");
+
+const MotorSimulator         = lazy(loadMotorSimulator);
+const LoadCalculator         = lazy(loadLoadCalculator);
+const ProductDatabaseManager = lazy(loadProductDatabaseManager);
+const ThermalAnalyzer        = lazy(loadThermalAnalyzer);
+const ProgramDesigner        = lazy(loadProgramDesigner);
+const FeedbackBoard          = lazy(loadFeedbackBoard);
+
+const PAGE_PRELOADERS = {
+  motor: loadMotorSimulator,
+  load: loadLoadCalculator,
+  db: loadProductDatabaseManager,
+  thermal: loadThermalAnalyzer,
+  "ai-assistant": loadProgramDesigner,
+  board: loadFeedbackBoard,
+};
+
+const preloadedPages = new Set();
+function preloadPage(pageId) {
+  if (preloadedPages.has(pageId)) {
+    return;
+  }
+  const loader = PAGE_PRELOADERS[pageId];
+  if (loader) {
+    preloadedPages.add(pageId);
+    loader().catch(() => preloadedPages.delete(pageId));
+  }
+}
 
 function PageLoader() {
   return (
@@ -318,7 +346,7 @@ export default function App() {
             모션 설계부터 열해석, AI 코드 생성까지<br />엔지니어의 모든 작업을 한 곳에서.
           </p>
           <div className="home-mode-list">
-            <div className="home-mode-item" onClick={() => setPage("motor")}>
+            <div className="home-mode-item" onClick={() => setPage("motor")} onMouseEnter={() => preloadPage("motor")} onFocus={() => preloadPage("motor")}>
               <span className="home-mode-num">01</span>
               <span className="home-mode-name">
                 모션 설계 도우미
@@ -327,7 +355,7 @@ export default function App() {
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
-            <div className="home-mode-item" onClick={() => setPage("load")}>
+            <div className="home-mode-item" onClick={() => setPage("load")} onMouseEnter={() => preloadPage("load")} onFocus={() => preloadPage("load")}>
               <span className="home-mode-num">02</span>
               <span className="home-mode-name">
                 하중 계산
@@ -336,7 +364,7 @@ export default function App() {
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
-            <div className="home-mode-item" onClick={() => setPage("thermal")}>
+            <div className="home-mode-item" onClick={() => setPage("thermal")} onMouseEnter={() => preloadPage("thermal")} onFocus={() => preloadPage("thermal")}>
               <span className="home-mode-num">03</span>
               <span className="home-mode-name">
                 열해석
@@ -345,7 +373,7 @@ export default function App() {
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
-            <div className="home-mode-item" onClick={() => setPage("ai-assistant")}>
+            <div className="home-mode-item" onClick={() => setPage("ai-assistant")} onMouseEnter={() => preloadPage("ai-assistant")} onFocus={() => preloadPage("ai-assistant")}>
               <span className="home-mode-num">04</span>
               <span className="home-mode-name">
                 프로그램 설계소
@@ -354,7 +382,7 @@ export default function App() {
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
-            <div className="home-mode-item" onClick={() => setPage("db")}>
+            <div className="home-mode-item" onClick={() => setPage("db")} onMouseEnter={() => preloadPage("db")} onFocus={() => preloadPage("db")}>
               <span className="home-mode-num">05</span>
               <span className="home-mode-name">
                 통합 카탈로그 검색
@@ -363,7 +391,7 @@ export default function App() {
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
-            <div className="home-mode-item" onClick={() => setPage("board")}>
+            <div className="home-mode-item" onClick={() => setPage("board")} onMouseEnter={() => preloadPage("board")} onFocus={() => preloadPage("board")}>
               <span className="home-mode-num">06</span>
               <span className="home-mode-name">
                 게시판
@@ -438,7 +466,11 @@ export default function App() {
             const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "board";
 
             return (
-              <article className="tool-card" key={tool.id}>
+              <article
+                className="tool-card"
+                key={tool.id}
+                onMouseEnter={() => isActiveTool && preloadPage(tool.id)}
+              >
                 <div className="tool-card__top">
                   <div className="tool-card__title">
                     <span className="tool-card__caption">{tool.caption}</span>
