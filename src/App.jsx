@@ -6,6 +6,7 @@ const LoadCalculator         = lazy(() => import("./LoadCalculator"));
 const ProductDatabaseManager = lazy(() => import("./ProductDatabaseManager"));
 const ThermalAnalyzer        = lazy(() => import("./ThermalAnalyzer"));
 const ProgramDesigner        = lazy(() => import("./ProgramDesigner"));
+const FeedbackBoard          = lazy(() => import("./FeedbackBoard"));
 
 function PageLoader() {
   return (
@@ -21,6 +22,7 @@ import { VACUUM_DATABASE } from "./data/vacuumDatabase";
 import { VACUUM_PUMP_DATABASE } from "./data/vacuumPumpDatabase";
 import { VACUUM_VALVE_DATABASE } from "./data/vacuumValveDatabase";
 import { VACUUM_MOTION_DATABASE } from "./data/vacuumMotionDatabase";
+import { VACUUM_GAUGE_DATABASE } from "./data/vacuumGaugeDatabase";
 import { MOTOR_DATABASE } from "./data/motorDatabase";
 import { REDUCER_DATABASE } from "./data/reducerDatabase";
 import { BALL_SCREW_DATABASE } from "./data/ballScrewDatabase";
@@ -34,6 +36,7 @@ import {
   VACUUM_PUMP_FIELDS,
   VACUUM_VALVE_FIELDS,
   VACUUM_MOTION_FIELDS,
+  VACUUM_GAUGE_FIELDS,
 } from "./data/productDbSchemas";
 import "./App.css";
 
@@ -47,6 +50,7 @@ const PRODUCT_DB_STORAGE_KEYS = {
   vacuumPump: "motor-simulator-react:vacuum-pump-db:v1",
   vacuumValve: "motor-simulator-react:vacuum-valve-db:v1",
   vacuumMotion: "motor-simulator-react:vacuum-motion-db:v1",
+  vacuumGauge: "motor-simulator-react:vacuum-gauge-db:v1",
 };
 
 const PRODUCT_DB_SEED = {
@@ -59,6 +63,7 @@ const PRODUCT_DB_SEED = {
   vacuumPump: VACUUM_PUMP_DATABASE,
   vacuumValve: VACUUM_VALVE_DATABASE,
   vacuumMotion: VACUUM_MOTION_DATABASE,
+  vacuumGauge: VACUUM_GAUGE_DATABASE,
 };
 
 const PRODUCT_DB_FIELDS_BY_KEY = {
@@ -71,6 +76,7 @@ const PRODUCT_DB_FIELDS_BY_KEY = {
   vacuumPump: VACUUM_PUMP_FIELDS,
   vacuumValve: VACUUM_VALVE_FIELDS,
   vacuumMotion: VACUUM_MOTION_FIELDS,
+  vacuumGauge: VACUUM_GAUGE_FIELDS,
 };
 
 const PRODUCT_DB_KEYS = Object.keys(PRODUCT_DB_SEED);
@@ -162,10 +168,18 @@ const TOOLS = [
   },
   {
     id: "db",
-    title: "제품 DB 관리",
-    description: "모터·감속기·볼스크류·LM가이드·엔코더·진공부품을 대분류·중분류·소분류로 나눠 관리합니다.",
+    title: "통합 카탈로그 검색",
+    description: "모터·감속기·볼스크류·LM가이드·엔코더·진공부품을 대분류·중분류·소분류로 나눠 빠르게 검색할 수 있습니다.",
     status: "사용 가능",
-    caption: "Database Manager",
+    caption: "Catalog Search",
+    actionLabel: "열기",
+  },
+  {
+    id: "board",
+    title: "게시판",
+    description: "사용해보신 분들의 후기와 의견을 자유롭게 남기고, 다른 사람들의 글도 확인할 수 있습니다.",
+    status: "사용 가능",
+    caption: "Feedback Board",
     actionLabel: "열기",
   },
 ];
@@ -284,6 +298,14 @@ export default function App() {
     );
   }
 
+  if (page === "board") {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <FeedbackBoard onBack={() => setPage("home")} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="app home-app">
       <header className="home-hero">
@@ -335,8 +357,17 @@ export default function App() {
             <div className="home-mode-item" onClick={() => setPage("db")}>
               <span className="home-mode-num">05</span>
               <span className="home-mode-name">
-                제품 DB 관리
+                통합 카탈로그 검색
                 <span className="home-mode-desc"> · 모션 구동계·센서·진공부품 카탈로그 검색</span>
+              </span>
+              <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
+            </div>
+            <div className="home-mode-item" onClick={() => setPage("board")}>
+              <span className="home-mode-num">06</span>
+              <span className="home-mode-name">
+                게시판
+                <span className="home-mode-desc"> · 사용 후기와 의견 남기기</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
@@ -378,8 +409,15 @@ export default function App() {
               <li>
                 <span className="home-feature-icon home-feature-icon--green">📦</span>
                 <div>
-                  <strong>제품 DB 관리</strong>
+                  <strong>통합 카탈로그 검색</strong>
                   <p>흩어진 카탈로그를 한 곳에서 찾습니다</p>
+                </div>
+              </li>
+              <li>
+                <span className="home-feature-icon home-feature-icon--pink">💬</span>
+                <div>
+                  <strong>게시판</strong>
+                  <p>사용해본 분들의 후기를 함께 남기고 확인합니다</p>
                 </div>
               </li>
             </ul>
@@ -397,7 +435,7 @@ export default function App() {
 
         <div className="tool-grid">
           {TOOLS.map((tool, index) => {
-            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant";
+            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "board";
 
             return (
               <article className="tool-card" key={tool.id}>
@@ -437,6 +475,11 @@ export default function App() {
                 ) : null}
                 {tool.id === "ai-assistant" ? (
                   <button type="button" className="ghost-button" onClick={() => setPage("ai-assistant")}>
+                    {tool.actionLabel}
+                  </button>
+                ) : null}
+                {tool.id === "board" ? (
+                  <button type="button" className="ghost-button" onClick={() => setPage("board")}>
                     {tool.actionLabel}
                   </button>
                 ) : null}

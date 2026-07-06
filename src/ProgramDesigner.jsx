@@ -573,7 +573,7 @@ export default function ProgramDesigner({ onBack }) {
               ↺ 리셋
             </button>
           )}
-          <button type="button" className="ghost-button" onClick={onBack}>← 홈으로</button>
+          <button type="button" className="ghost-button" onClick={onBack}>대문으로 돌아가기</button>
         </div>
       </header>
 

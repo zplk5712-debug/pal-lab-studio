@@ -8,7 +8,11 @@ import {
   PRODUCT_DB_CONFIG,
   PRODUCT_DB_TABS,
   REDUCER_SAMPLE_ROW,
+  VACUUM_GAUGE_SAMPLE_ROW,
+  VACUUM_MOTION_SAMPLE_ROW,
+  VACUUM_PUMP_SAMPLE_ROW,
   VACUUM_SAMPLE_ROW,
+  VACUUM_VALVE_SAMPLE_ROW,
 } from "./data/productDbSchemas";
 
 const SAMPLE_ROWS = {
@@ -18,6 +22,10 @@ const SAMPLE_ROWS = {
   lmGuide: LM_GUIDE_SAMPLE_ROW,
   encoder: ENCODER_SAMPLE_ROW,
   vacuum: VACUUM_SAMPLE_ROW,
+  vacuumPump: VACUUM_PUMP_SAMPLE_ROW,
+  vacuumValve: VACUUM_VALVE_SAMPLE_ROW,
+  vacuumMotion: VACUUM_MOTION_SAMPLE_ROW,
+  vacuumGauge: VACUUM_GAUGE_SAMPLE_ROW,
 };
 
 function stringifyDisplayValue(value) {
@@ -222,7 +230,6 @@ function getKeySpecSummary(item, config) {
 export default function ProductDatabaseManager({ onBack, productDatabases, onUpdateProductDatabase }) {
   const [activeCategory, setActiveCategory] = useState(PRODUCT_DB_CATEGORIES[0].id);
   const [activeTab, setActiveTab] = useState(PRODUCT_DB_CATEGORIES[0].tabs[0]);
-  const [manufacturerFilter, setManufacturerFilter] = useState("all");
   const [subCategoryFilter, setSubCategoryFilter] = useState("all");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -240,21 +247,33 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
     setActiveTab(category.tabs[0]);
   }
 
+  const subCategoryOptions = useMemo(() => {
+    if (!config.subCategoryField) {
+      return [];
+    }
+
+    const valuesFromData = items
+      .map((item) => item[config.subCategoryField])
+      .filter((value) => value !== null && value !== undefined && value !== "");
+
+    return [...new Set([...(config.subCategories ?? []), ...valuesFromData.map(String)])];
+  }, [items, config.subCategoryField, config.subCategories]);
+
   const filteredItems = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
 
     return items.filter((item) => {
-      const matchesManufacturer = manufacturerFilter === "all" || item.manufacturer === manufacturerFilter;
       const matchesSubCategory =
-        !config.subCategoryField || subCategoryFilter === "all" || item[config.subCategoryField] === subCategoryFilter;
+        !config.subCategoryField || subCategoryFilter === "all" || String(item[config.subCategoryField] ?? "") === subCategoryFilter;
       const matchesSearch =
         keyword === "" ||
         String(item.series ?? "").toLowerCase().includes(keyword) ||
-        String(item.model ?? "").toLowerCase().includes(keyword);
+        String(item.model ?? "").toLowerCase().includes(keyword) ||
+        String(item.manufacturer ?? "").toLowerCase().includes(keyword);
 
-      return matchesManufacturer && matchesSubCategory && matchesSearch;
+      return matchesSubCategory && matchesSearch;
     });
-  }, [items, manufacturerFilter, subCategoryFilter, searchKeyword, config.subCategoryField]);
+  }, [items, subCategoryFilter, searchKeyword, config.subCategoryField]);
 
   const comparisonGroups = useMemo(() => {
     if (!config.compareField) {
@@ -291,7 +310,6 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
   }, [filteredItems, selectedId]);
 
   useEffect(() => {
-    setManufacturerFilter("all");
     setSubCategoryFilter("all");
     setSearchKeyword("");
     setSelectedId("");
@@ -382,8 +400,8 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
     <div className="app app--db">
       <header className="app-header app-header--db">
         <div>
-          <p className="page-kicker">PRODUCT DB MANAGER</p>
-          <h1>제품 DB 관리</h1>
+          <p className="page-kicker">INTEGRATED CATALOG SEARCH</p>
+          <h1>통합 카탈로그 검색</h1>
           <p>연구소 주력 제품군을 대분류·중분류·소분류로 나눠 업로드하고, 검색하고, 추후 추천엔진과 연결할 수 있게 준비합니다.</p>
         </div>
         <button type="button" className="ghost-button" onClick={onBack}>
@@ -426,7 +444,7 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
               <span>{config.subCategoryLabel}</span>
               <select value={subCategoryFilter} onChange={(event) => setSubCategoryFilter(event.target.value)}>
                 <option value="all">전체 {config.subCategoryLabel}</option>
-                {config.subCategories.map((subCategory) => (
+                {subCategoryOptions.map((subCategory) => (
                   <option key={subCategory} value={subCategory}>
                     {subCategory}
                   </option>
@@ -436,19 +454,7 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
           ) : null}
 
           <div className="field">
-            <span>제조사 (비교용 필터)</span>
-            <select value={manufacturerFilter} onChange={(event) => setManufacturerFilter(event.target.value)}>
-              <option value="all">전체 제조사</option>
-              {config.manufacturers.map((manufacturer) => (
-                <option key={manufacturer} value={manufacturer}>
-                  {manufacturer}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field">
-            <span>시리즈/모델 검색</span>
+            <span>제조사/시리즈/모델 검색</span>
             <form className="db-search-row" onSubmit={(event) => event.preventDefault()}>
               <input
                 type="text"
@@ -500,11 +506,19 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
                 ) : null}
 
                 {group.items.map((item) => (
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     key={item.id}
                     className={`db-list-item${selectedItem?.id === item.id ? " is-selected" : ""}`}
                     onClick={() => { setSelectedId(item.id); setHasSelectedManually(true); }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedId(item.id);
+                        setHasSelectedManually(true);
+                      }
+                    }}
                   >
                     <div className="db-list-item__head">
                       <strong>{item.model}</strong>
@@ -512,14 +526,25 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
                     </div>
                     <p>{item.series}</p>
                     <small>{getKeySpecSummary(item, config)}</small>
-                  </button>
+                    {item.catalogUrl ? (
+                      <a
+                        href={item.catalogUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="db-item-catalog-link"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        카탈로그 열기 ↗
+                      </a>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             ))}
 
             {filteredItems.length === 0 ? (
               <div className="empty-box">
-                <p>현재 조건에 맞는 등록 항목이 없습니다. 제조사 필터 또는 검색어를 조정해 주세요.</p>
+                <p>현재 조건에 맞는 등록 항목이 없습니다. 종류 필터 또는 검색어를 조정해 주세요.</p>
               </div>
             ) : null}
           </div>
@@ -559,11 +584,11 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
             </div>
           ) : (
             <div className="empty-box empty-box--guide">
-              <h3>제품 DB 관리 사용법</h3>
+              <h3>통합 카탈로그 검색 사용법</h3>
               <ul>
-                <li><strong>1. 필터·검색</strong> — 왼쪽에서 제조사를 고르거나 모델명으로 검색합니다.</li>
-                <li><strong>2. 항목 선택</strong> — 목록에서 항목을 클릭하면 여기에 전체 상세가 표시됩니다.</li>
-                <li><strong>3. 업로드</strong> — JSON/CSV 파일을 올려 새 항목을 검사 후 추가합니다.</li>
+                <li><strong>1. 종류 선택</strong> — 왼쪽에서 부품 종류를 고르면 모든 제조사의 제품이 함께 나열됩니다.</li>
+                <li><strong>2. 비교·선택</strong> — 같은 규격끼리 묶인 목록에서 제조사별로 비교하고, 클릭하면 상세가 표시됩니다.</li>
+                <li><strong>3. 카탈로그 이동</strong> — 마음에 드는 제품의 "카탈로그 열기"로 제조사 사이트에서 바로 확인합니다.</li>
               </ul>
             </div>
           )}

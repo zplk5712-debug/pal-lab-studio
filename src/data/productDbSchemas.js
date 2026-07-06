@@ -176,6 +176,22 @@ export const VACUUM_MOTION_FIELDS = [
   "note",
 ];
 
+export const VACUUM_GAUGE_FIELDS = [
+  "id",
+  "manufacturer",
+  "gaugeType",
+  "series",
+  "model",
+  "measurementRange_mbar",
+  "flangeSize",
+  "outputSignal",
+  "controllerRequired",
+  "maxBakeoutTemp_C",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
 export const LM_GUIDE_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
 export const ENCODER_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
 export const VACUUM_REQUIRED_FIELDS = ["id", "manufacturer", "partType", "model"];
@@ -185,6 +201,7 @@ export const BALL_SCREW_REQUIRED_FIELDS = ["id", "manufacturer", "series", "mode
 export const VACUUM_PUMP_REQUIRED_FIELDS = ["id", "manufacturer", "pumpType", "model"];
 export const VACUUM_VALVE_REQUIRED_FIELDS = ["id", "manufacturer", "valveType", "model"];
 export const VACUUM_MOTION_REQUIRED_FIELDS = ["id", "manufacturer", "motionType", "model"];
+export const VACUUM_GAUGE_REQUIRED_FIELDS = ["id", "manufacturer", "gaugeType", "model"];
 
 export const LM_GUIDE_NUMERIC_FIELDS = [
   "dynamicLoad_N",
@@ -262,6 +279,18 @@ export const VACUUM_MOTION_NUMERIC_FIELDS = [
   "rotationRange_deg",
   "maxBakeoutTemp_C",
   "weight_kg",
+];
+
+export const VACUUM_GAUGE_NUMERIC_FIELDS = ["maxBakeoutTemp_C"];
+
+export const VACUUM_GAUGE_TYPES = [
+  "열전대 게이지",
+  "피라니 게이지",
+  "이온 게이지 (핫캐소드)",
+  "이온 게이지 (콜드캐소드)",
+  "풀레인지 게이지",
+  "커패시턴스 마노미터",
+  "부르동 게이지",
 ];
 
 export const LM_GUIDE_MANUFACTURERS = [
@@ -402,6 +431,7 @@ export const PRODUCT_DB_TABS = [
   { id: "vacuumPump", label: "진공펌프 DB" },
   { id: "vacuumValve", label: "진공밸브 DB" },
   { id: "vacuumMotion", label: "진공모션·매니퓰레이터 DB" },
+  { id: "vacuumGauge", label: "진공 게이지 DB" },
 ];
 
 export const PRODUCT_DB_CATEGORIES = [
@@ -414,8 +444,8 @@ export const PRODUCT_DB_CATEGORIES = [
   {
     id: "sensor",
     label: "센서·피드백",
-    description: "위치·속도 피드백용 센서 부품군",
-    tabs: ["encoder"],
+    description: "위치·속도 피드백 및 진공 측정용 센서 부품군",
+    tabs: ["encoder", "vacuumGauge"],
   },
   {
     id: "vacuumComponents",
@@ -454,6 +484,9 @@ export const PRODUCT_DB_CONFIG = {
     detailTitle: "감속기 상세",
     searchPlaceholder: "시리즈 또는 모델명 검색",
     keySpecs: ["reducerType", "reductionRatio", "ratedTorque_Nm", "backlash_arcmin"],
+    subCategoryField: "reducerType",
+    subCategoryLabel: "감속기 종류",
+    subCategories: ["하모닉 드라이브", "유성 감속기", "사이클로이드 감속기", "웜 감속기"],
     compareField: "reductionRatio",
     compareLabel: "감속비",
   },
@@ -468,6 +501,9 @@ export const PRODUCT_DB_CONFIG = {
     detailTitle: "볼스크류 상세",
     searchPlaceholder: "시리즈 또는 모델명 검색",
     keySpecs: ["shaftDiameter_mm", "lead_mm", "accuracyGrade", "dynamicLoad_N"],
+    subCategoryField: "accuracyGrade",
+    subCategoryLabel: "정밀 등급",
+    subCategories: ["C0", "C1", "C3", "C5", "C7", "C10"],
     compareField: "shaftDiameter_mm",
     compareLabel: "축 지름",
   },
@@ -482,6 +518,9 @@ export const PRODUCT_DB_CONFIG = {
     detailTitle: "LM가이드 상세",
     searchPlaceholder: "시리즈 또는 모델명 검색",
     keySpecs: ["railSize", "blockType", "accuracyGrade", "dynamicLoad_N", "staticLoad_N"],
+    subCategoryField: "railSize",
+    subCategoryLabel: "레일 사이즈",
+    subCategories: ["9", "15", "20", "25", "30", "35", "45"],
     compareField: "railSize",
     compareLabel: "레일 사이즈",
   },
@@ -496,6 +535,9 @@ export const PRODUCT_DB_CONFIG = {
     detailTitle: "엔코더 상세",
     searchPlaceholder: "시리즈 또는 모델명 검색",
     keySpecs: ["encoderType", "measurementType", "resolution", "interfaceType", "maxSpeed_rpm"],
+    subCategoryField: "encoderType",
+    subCategoryLabel: "엔코더 종류",
+    subCategories: ["인크리멘탈", "앱솔루트"],
     compareField: "resolution",
     compareLabel: "분해능",
   },
@@ -567,6 +609,23 @@ export const PRODUCT_DB_CONFIG = {
     compareField: "flangeSize",
     compareLabel: "플랜지 사이즈",
   },
+  vacuumGauge: {
+    id: "vacuumGauge",
+    title: "진공 게이지 DB",
+    fields: VACUUM_GAUGE_FIELDS,
+    requiredFields: VACUUM_GAUGE_REQUIRED_FIELDS,
+    numericFields: VACUUM_GAUGE_NUMERIC_FIELDS,
+    manufacturers: ["MDC Precision", "Pfeiffer Vacuum", "Edwards", "Agilent (Varian)", "Kurt J. Lesker", "INFICON"],
+    sampleFileName: "vacuum-gauge-sample",
+    detailTitle: "진공 게이지 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["gaugeType", "measurementRange_mbar", "flangeSize", "outputSignal"],
+    subCategoryField: "gaugeType",
+    subCategoryLabel: "게이지 종류",
+    subCategories: VACUUM_GAUGE_TYPES,
+    compareField: "gaugeType",
+    compareLabel: "게이지 종류",
+  },
 };
 
 export const LM_GUIDE_SAMPLE_ROW = {
@@ -617,7 +676,7 @@ export const REDUCER_SAMPLE_ROW = {
   manufacturer: "Harmonic Drive",
   series: "CSF",
   model: "CSF-25-100-2A",
-  reducerType: "harmonic_drive",
+  reducerType: "하모닉 드라이브",
   reductionRatio: 100,
   ratedTorque_Nm: "catalog_check_required",
   maxTorque_Nm: null,
@@ -725,12 +784,28 @@ export const VACUUM_MOTION_SAMPLE_ROW = {
   note: "catalog_check_required",
 };
 
+export const VACUUM_GAUGE_SAMPLE_ROW = {
+  id: "vacgauge-mdc-tc-sample",
+  manufacturer: "MDC Precision",
+  gaugeType: "열전대 게이지",
+  series: "Thermocouple Gauge Tube",
+  model: "432013",
+  measurementRange_mbar: "1e-3 ~ 1 (대략)",
+  flangeSize: "KF16 (NW16)",
+  outputSignal: "thermocouple_mV",
+  controllerRequired: "yes",
+  maxBakeoutTemp_C: "catalog_check_required",
+  application: "roughing_pressure_monitoring",
+  catalogUrl: "https://www.mdcprecision.com/",
+  note: "catalog_check_required",
+};
+
 export const ENCODER_SAMPLE_ROW = {
   id: "encoder-sample-001",
   manufacturer: "HEIDENHAIN",
   series: "ERN",
   model: "ERN1387",
-  encoderType: "incremental",
+  encoderType: "인크리멘탈",
   measurementType: "rotary",
   resolution: "catalog_check_required",
   accuracy: "catalog_check_required",

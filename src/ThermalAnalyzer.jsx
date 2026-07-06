@@ -527,13 +527,13 @@ export default function ThermalAnalyzer({ onBack }) {
   return (
     <div className="app th-app">
       <header className="th-header">
-        <button className="ghost-button" onClick={onBack}>← 뒤로</button>
         <h2>열해석 (Thermal Analysis)</h2>
         <button className="button" style={{padding:"6px 20px", fontSize:14, marginLeft:"auto"}}
           onClick={handleSolve} disabled={busy||!meshData}>
           {statusLabel ?? "해석 실행"}
         </button>
         <span className="tool-badge tool-badge--active">Pure JS · Phase 2</span>
+        <button className="ghost-button" onClick={onBack}>대문으로 돌아가기</button>
       </header>
 
       <div className="th-layout">
