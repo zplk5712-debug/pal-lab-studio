@@ -363,6 +363,7 @@ export const BALL_SCREW_MANUFACTURERS = [
   "PMI",
   "Bosch Rexroth",
   "Nook Industries",
+  "MISUMI",
 ];
 
 export const VACUUM_PUMP_MANUFACTURERS = [

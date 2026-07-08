@@ -272,6 +272,13 @@ function AnimPlayer({ timePoints, currentIdx, onSeek, playing, onPlayPause }) {
   );
 }
 
+// ─── GL 참조 (PNG 내보내기용) ─────────────────────────────────────────────────
+function GlCapture({ glRef }) {
+  const { gl } = useThree();
+  useEffect(() => { glRef.current = gl; }, [gl, glRef]);
+  return null;
+}
+
 // ─── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 export default function ThermalAnalyzer({ onBack }) {
   // 파일 / 메시
@@ -280,6 +287,7 @@ export default function ThermalAnalyzer({ onBack }) {
   const [bbox, setBbox]         = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const fileRef = useRef(null);
+  const glRef   = useRef(null);
 
   // 소재
   const [selMat, setSelMat]     = useState("sus304");
@@ -409,6 +417,28 @@ export default function ThermalAnalyzer({ onBack }) {
     if (transResult)     return transResult.snapshots[frameIdx];
     return null;
   }, [mode, steadyT, transResult, frameIdx]);
+
+  const exportCSV = useCallback(() => {
+    if (!meshData || !displayTemps) return;
+    const N = meshData.nodes.length / 3;
+    const rows = ["index,x,y,z,T_degC"];
+    for (let i = 0; i < N; i++)
+      rows.push(`${i},${meshData.nodes[i*3].toFixed(4)},${meshData.nodes[i*3+1].toFixed(4)},${meshData.nodes[i*3+2].toFixed(4)},${displayTemps[i].toFixed(4)}`);
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "thermal_result.csv";
+    a.click();
+  }, [meshData, displayTemps]);
+
+  const exportPNG = useCallback(() => {
+    if (!glRef.current) return;
+    const url = glRef.current.domElement.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "thermal_result.png";
+    a.click();
+  }, []);
 
   // 로그 스케일: 온도 범위가 100°C 초과 시 자동 전환 (극단적 열점 가시화)
   const useLogScale = displayTemps != null && (tMax - tMin) > 100;
@@ -798,6 +828,55 @@ export default function ThermalAnalyzer({ onBack }) {
             )}
           </section>
 
+          {/* 5. 클릭 열원 */}
+          <section className="th-section">
+            <h3>5. 클릭 열원</h3>
+            <p className="th-bc-desc">
+              모델 표면을 클릭해 국소 열원(W)을 지정합니다.
+              <span className="th-bc-desc--sub"> 클릭 모드 ON 후 3D 뷰에서 클릭</span>
+            </p>
+            <div style={{display:"flex", gap:8, alignItems:"flex-end", flexWrap:"wrap", marginBottom:6}}>
+              <label className="th-label" style={{flex:1}}>열유량 (W)
+                <input type="number" className="th-input" value={clickWatts} min={0} step={10}
+                  onChange={e => setClickWatts(+e.target.value)} />
+              </label>
+              <label className="th-label" style={{flex:1}}>반경 (스팬 %)
+                <input type="number" className="th-input" value={clickRadius} min={0.1} max={50} step={0.5}
+                  onChange={e => setClickRadius(+e.target.value)} />
+              </label>
+              <button
+                className={`th-click-toggle${clickMode?" active":""}`}
+                onClick={() => setClickMode(v => !v)}
+                disabled={!meshData}>
+                {clickMode ? "✓ 클릭 모드 ON" : "클릭 모드 OFF"}
+              </button>
+            </div>
+            {pointBCs.length > 0 && (
+              <div style={{display:"flex", flexDirection:"column", gap:4}}>
+                {pointBCs.map(bc => (
+                  <div key={bc.id} className="th-bc-card"
+                    style={{background: selectedPBC===bc.id ? "rgba(249,115,22,0.15)" : undefined, cursor:"pointer"}}
+                    onClick={() => setSelectedPBC(bc.id)}>
+                    <div className="th-bc-card__header">
+                      <span className="th-bc-face-dot" style={{background:"#f97316"}} />
+                      <span className="th-bc-card__label">
+                        ({bc.x.toFixed(1)}, {bc.y.toFixed(1)}, {bc.z.toFixed(1)}) — {bc.nodeIndices.length}노드
+                      </span>
+                      <button className="th-del" onClick={e => { e.stopPropagation(); removePointBC(bc.id); }}>✕</button>
+                    </div>
+                    <div className="th-bc-card__body">
+                      <input type="number" className="th-input th-input--sm" value={bc.watts} min={0} step={10}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => updatePointBC(bc.id, e.target.value)} />
+                      <span className="th-unit">W</span>
+                    </div>
+                  </div>
+                ))}
+                <button className="ghost-button th-add" onClick={() => setPointBCs([])}>전체 삭제</button>
+              </div>
+            )}
+          </section>
+
           {/* 6. 면 경계조건 */}
           <section className="th-section">
             <h3>6. 면 온도 경계조건</h3>
@@ -839,6 +918,32 @@ export default function ThermalAnalyzer({ onBack }) {
             ))}
             <button className="ghost-button th-add" onClick={addBC}>+ 면 추가</button>
           </section>
+
+          {/* 해석 정밀도 안내 */}
+          <section className="th-section" style={{
+            gridColumn:"1/-1",
+            borderColor:"rgba(251,191,36,0.25)",
+            background:"rgba(251,191,36,0.04)"
+          }}>
+            <h3 style={{color:"#d97706", display:"flex", alignItems:"center", gap:6}}>
+              <span>⚠</span> 해석 정밀도 안내
+            </h3>
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 20px", marginTop:4}}>
+              {[
+                ["적용 범위", "초기 검토·파라미터 스터디 전용"],
+                ["Shell FEM 한계", "두께 방향 온도 구배 미반영"],
+                ["복사 뷰 팩터", "전 표면→환경 방사 가정 (부품 간 차폐 미고려)"],
+                ["물성 온도 의존성", "k·ε 고정값 사용 (온도 따른 변화 미반영)"],
+                ["조립품 두께", "단일 t값으로 근사 (파이프/플랜지 혼용 시 부정확)"],
+                ["최종 설계 검증", "ANSYS 등 상용 FEM 별도 검토 필요"],
+              ].map(([k,v]) => (
+                <div key={k} style={{fontSize:12, lineHeight:1.5}}>
+                  <span style={{color:"#92400e", fontWeight:500}}>{k}:</span>
+                  <span style={{color:"#a16207", marginLeft:4}}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </section>
         </aside>
 
         {/* ── 3D 뷰포트 ── */}
@@ -847,6 +952,7 @@ export default function ThermalAnalyzer({ onBack }) {
             <>
               <Canvas
                 camera={{fov:45}}
+                gl={{ preserveDrawingBuffer: true }}
                 style={{background:"#0f0f1a", cursor: (clickMode||beamClickMode) ? "crosshair" : "grab"}}>
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10,10,10]} intensity={0.8} />
@@ -900,8 +1006,36 @@ export default function ThermalAnalyzer({ onBack }) {
                   bbox={bbox} isPreview={!beamEnabled} />
                 {/* 클릭·빔 모드일 때 드래그 비활성화 */}
                 <OrbitControls enabled={!clickMode && !beamClickMode} />
+                <GlCapture glRef={glRef} />
               </Canvas>
               {displayTemps && <ColorLegend tMin={tMin} tMax={tMax} useLog={useLogScale} />}
+              {displayTemps && (
+                <div style={{
+                  position:"absolute", top:10, right:10,
+                  display:"flex", gap:6, zIndex:20
+                }}>
+                  <button
+                    onClick={exportCSV}
+                    style={{
+                      background:"rgba(13,17,23,0.85)", border:"1px solid rgba(255,255,255,0.15)",
+                      color:"#94a3b8", borderRadius:6, padding:"5px 10px",
+                      fontSize:12, cursor:"pointer", backdropFilter:"blur(6px)"
+                    }}
+                    title="노드별 온도 CSV 다운로드">
+                    ⬇ CSV
+                  </button>
+                  <button
+                    onClick={exportPNG}
+                    style={{
+                      background:"rgba(13,17,23,0.85)", border:"1px solid rgba(255,255,255,0.15)",
+                      color:"#94a3b8", borderRadius:6, padding:"5px 10px",
+                      fontSize:12, cursor:"pointer", backdropFilter:"blur(6px)"
+                    }}
+                    title="3D 뷰 PNG 다운로드">
+                    ⬇ PNG
+                  </button>
+                </div>
+              )}
               {/* 결과 오버레이 — 뷰포트 상단 */}
               {displayTemps && (
                 <div style={{

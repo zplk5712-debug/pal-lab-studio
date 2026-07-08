@@ -7,6 +7,7 @@ const loadProductDatabaseManager = () => import("./ProductDatabaseManager");
 const loadThermalAnalyzer        = () => import("./ThermalAnalyzer");
 const loadProgramDesigner        = () => import("./ProgramDesigner");
 const loadFeedbackBoard          = () => import("./FeedbackBoard");
+const loadDocumentConverter      = () => import("./DocumentConverter");
 
 const MotorSimulator         = lazy(loadMotorSimulator);
 const LoadCalculator         = lazy(loadLoadCalculator);
@@ -14,6 +15,7 @@ const ProductDatabaseManager = lazy(loadProductDatabaseManager);
 const ThermalAnalyzer        = lazy(loadThermalAnalyzer);
 const ProgramDesigner        = lazy(loadProgramDesigner);
 const FeedbackBoard          = lazy(loadFeedbackBoard);
+const DocumentConverter      = lazy(loadDocumentConverter);
 
 const PAGE_PRELOADERS = {
   motor: loadMotorSimulator,
@@ -22,6 +24,7 @@ const PAGE_PRELOADERS = {
   thermal: loadThermalAnalyzer,
   "ai-assistant": loadProgramDesigner,
   board: loadFeedbackBoard,
+  converter: loadDocumentConverter,
 };
 
 const preloadedPages = new Set();
@@ -124,7 +127,14 @@ function sanitizeStoredDatabase(rawItems, fallbackItems, fields) {
     )
     .filter((item) => typeof item.id === "string" && item.id.trim() !== "");
 
-  return sanitizedItems.length > 0 ? sanitizedItems : fallbackItems;
+  if (sanitizedItems.length === 0) {
+    return fallbackItems;
+  }
+
+  const storedIds = new Set(sanitizedItems.map((item) => item.id));
+  const missingSeedItems = fallbackItems.filter((item) => !storedIds.has(item.id));
+
+  return [...sanitizedItems, ...missingSeedItems];
 }
 
 function readStoredDatabase(storageKey, fallbackItems, fields) {
@@ -208,6 +218,14 @@ const TOOLS = [
     description: "사용해보신 분들의 후기와 의견을 자유롭게 남기고, 다른 사람들의 글도 확인할 수 있습니다.",
     status: "사용 가능",
     caption: "Feedback Board",
+    actionLabel: "열기",
+  },
+  {
+    id: "converter",
+    title: "일괄 문서 변환기",
+    description: "이미지 포맷 변환, 이미지→PDF, 엑셀↔CSV, 실험 데이터(ASCII) 변환을 한 번에 처리하고 변환 전후를 비교할 수 있습니다.",
+    status: "사용 가능",
+    caption: "Batch Document Converter",
     actionLabel: "열기",
   },
 ];
@@ -350,13 +368,35 @@ export default function App() {
     );
   }
 
+  if (page === "converter") {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <DocumentConverter onBack={() => setPage("home")} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="app home-app">
       <header className="home-hero">
-        <img src="./로고PNG.png" alt="PAL" className="home-pal-logo--hero" />
+        <div className="home-logo--hero" aria-hidden="true">
+          <svg viewBox="0 0 48 48" className="home-logo-mark">
+            <defs>
+              <linearGradient id="homeLogoGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#0ea5e9" />
+                <stop offset="1" stopColor="#144fbf" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#homeLogoGrad)" />
+            <path d="M17 15 L11 24 L17 33" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <path d="M31 15 L37 24 L31 33" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <circle cx="24" cy="24" r="2.6" fill="#fff" />
+          </svg>
+          <span className="home-logo-word">EasyLab</span>
+        </div>
         <div className="home-copy">
-          <p className="page-kicker">PAL Engineering Lab</p>
-          <h1>PALAB 스튜디오</h1>
+          <p className="page-kicker">Easy Access to Program &amp; AI</p>
+          <h1>이지랩 스튜디오</h1>
           <p className="home-tagline">"몰라도 괜찮아요 — 물어보면 전문가처럼 답해드립니다."</p>
           <p className="home-desc">
             모션 설계부터 열해석, AI 코드 생성까지<br />엔지니어의 모든 작업을 한 곳에서.
@@ -416,6 +456,15 @@ export default function App() {
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
+            <div className="home-mode-item" onClick={() => setPage("converter")} onMouseEnter={() => preloadPage("converter")} onFocus={() => preloadPage("converter")}>
+              <span className="home-mode-num">07</span>
+              <span className="home-mode-name">
+                일괄 문서 변환기
+                <span className="home-mode-desc"> · 이미지·PDF·엑셀·실험 데이터 일괄 변환</span>
+              </span>
+              <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
+            </div>
           </div>
         </div>
 
@@ -464,6 +513,13 @@ export default function App() {
                   <p>사용해본 분들의 후기를 함께 남기고 확인합니다</p>
                 </div>
               </li>
+              <li>
+                <span className="home-feature-icon home-feature-icon--blue">🗂️</span>
+                <div>
+                  <strong>일괄 문서 변환기</strong>
+                  <p>이미지·PDF·엑셀·실험 데이터를 한 번에 변환합니다</p>
+                </div>
+              </li>
             </ul>
           </div>
         </div>
@@ -479,7 +535,7 @@ export default function App() {
 
         <div className="tool-grid">
           {TOOLS.map((tool, index) => {
-            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "board";
+            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "board" || tool.id === "converter";
 
             return (
               <article
@@ -528,6 +584,11 @@ export default function App() {
                 ) : null}
                 {tool.id === "board" ? (
                   <button type="button" className="ghost-button" onClick={() => setPage("board")}>
+                    {tool.actionLabel}
+                  </button>
+                ) : null}
+                {tool.id === "converter" ? (
+                  <button type="button" className="ghost-button" onClick={() => setPage("converter")}>
                     {tool.actionLabel}
                   </button>
                 ) : null}

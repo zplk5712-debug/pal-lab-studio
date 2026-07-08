@@ -8,9 +8,10 @@ const { execFile, spawn, exec } = require("node:child_process");
 const { promisify } = require("node:util");
 const execFileAsync = promisify(execFile);
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron");
+const { registerConverterIpc } = require("./converter/ipc-handlers.cjs");
 
 const isDev = !app.isPackaged;
-const appTitle = "PAL 랩 스튜디오";
+const appTitle = "이지랩 스튜디오";
 const databaseFiles = {
   lmGuide: "lm-guide-database.json",
   encoder: "encoder-database.json",
@@ -147,6 +148,8 @@ function buildAppMenu() {
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
+
+registerConverterIpc(ipcMain, { app, dialog });
 
 ipcMain.handle("desktop:get-app-info", () => ({
   name: app.getName(),

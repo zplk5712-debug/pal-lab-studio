@@ -100,11 +100,11 @@ function elementStiffness(p1, p2, p3, k) {
 
 // ─── Boundary condition helpers ───────────────────────────────────────────────
 
-function getFixedNodes(nodes, bbox, bcs, tol = 0.02) {
+function getFixedNodes(nodes, bbox, bcs) {
   const N = nodes.length / 3;
   const fixed = new Map();
 
-  if (!bcs || bcs.length === 0) return fixed; // 빈 맵 반환 — 호출부에서 앵커 처리
+  if (!bcs || bcs.length === 0) return fixed;
 
   for (const bc of bcs) {
     const { boundary, temp } = bc;
@@ -123,7 +123,12 @@ function getFixedNodes(nodes, bbox, bcs, tol = 0.02) {
     };
     const r = map[boundary];
     if (!r) continue;
-    const eps = Math.max(r.span * tol, 1e-12);
+    // 적응형 허용오차: 해당 경계에서 실제 최근접 노드 거리 + span의 0.5%
+    // → 경계면 노드를 정확히 잡고, 내부 노드 혼입을 최소화
+    let minDist = Infinity;
+    for (let i = 0; i < N; i++)
+      minDist = Math.min(minDist, Math.abs(nodes[i*3 + r.ax] - r.val));
+    const eps = minDist + Math.max(r.span * 0.005, 1e-12);
     for (let i = 0; i < N; i++)
       if (Math.abs(nodes[i*3 + r.ax] - r.val) <= eps) fixed.set(i, T);
   }
@@ -365,30 +370,53 @@ export function solveTransient(nodes, elements, bbox, params) {
   const timePoints = [0];
   let tMin = Math.min(...T), tMax = Math.max(...T);
 
-  for (let step = 1; step <= numSteps; step++) {
-    // 복사 선형화: 이전 타임스텝 T_prev 사용 (emissivity>0 시)
-    const { K, f: f_sys } = buildSystem(
-      nodes, elements, conductivity, heatSource, sysOpts,
-      emissivity > 0 ? T : null
-    );
-    // 열원 합산
-    for (let i = 0; i < N; i++) f_sys[i] += f_src[i];
-
-    // A = K + (1/dt)·M
-    const Astep = K.addScaledDiag(1/dt, Ml);
-    // rhs = (M/dt)·T_n + f
-    const rhs = new Float64Array(N);
-    for (let i = 0; i < N; i++) rhs[i] = Ml[i]/dt * T[i] + f_sys[i];
-
-    // Apply Dirichlet
+  // 성능 최적화: emissivity=0 시 K는 온도 무관 → A = K+(1/dt)M을 한 번만 조립
+  // f_dc: Dirichlet 보정 포함 열원 (자유 DOF만, 매 스텝 동일)
+  let Aclean = null, f_dc = null;
+  if (emissivity <= 0) {
+    const { K: K0, f: f0 } = buildSystem(nodes, elements, conductivity, heatSource, sysOpts, null);
+    for (let i = 0; i < N; i++) f0[i] += f_src[i];
+    // Dirichlet 열 제거 + rhs 보정 (자유 DOF)
     for (const [ni, temp] of fixed) {
       for (let i = 0; i < N; i++) {
         if (fixed.has(i)) continue;
-        const v = Astep.rows[i].get(ni);
-        if (v !== undefined) { rhs[i] -= v * temp; Astep.rows[i].delete(ni); }
+        const v = K0.rows[i].get(ni);
+        if (v !== undefined) { f0[i] -= v * temp; K0.rows[i].delete(ni); }
       }
     }
-    for (const [ni, temp] of fixed) { Astep.clearRow(ni); Astep.set(ni,ni,1); rhs[ni]=temp; }
+    // K에 질량항 추가 → Aclean
+    Aclean = K0.addScaledDiag(1/dt, Ml);
+    // Dirichlet 행 처리
+    for (const [ni] of fixed) { Aclean.clearRow(ni); Aclean.set(ni, ni, 1); }
+    f_dc = f0; // 보정 완료 하중벡터
+  }
+
+  for (let step = 1; step <= numSteps; step++) {
+    let Astep, f_step;
+
+    if (emissivity > 0) {
+      // 복사 있으면 매 스텝 K 재조립 (Picard — 온도 의존)
+      const { K, f: f_sys } = buildSystem(nodes, elements, conductivity, heatSource, sysOpts, T);
+      for (let i = 0; i < N; i++) f_sys[i] += f_src[i];
+      Astep = K.addScaledDiag(1/dt, Ml);
+      for (const [ni, temp] of fixed) {
+        for (let i = 0; i < N; i++) {
+          if (fixed.has(i)) continue;
+          const v = Astep.rows[i].get(ni);
+          if (v !== undefined) { f_sys[i] -= v * temp; Astep.rows[i].delete(ni); }
+        }
+        Astep.clearRow(ni); Astep.set(ni, ni, 1);
+      }
+      f_step = f_sys;
+    } else {
+      Astep = Aclean; // 재사용 (K, Dirichlet 고정)
+      f_step = f_dc;
+    }
+
+    // rhs = (M/dt)·T_n + f_step
+    const rhs = new Float64Array(N);
+    for (let i = 0; i < N; i++) rhs[i] = Ml[i]/dt * T[i] + f_step[i];
+    for (const [ni, temp] of fixed) rhs[ni] = temp;
 
     T = cg(Astep, rhs, 1e-8, 2000);
 

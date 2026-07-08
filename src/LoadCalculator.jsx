@@ -619,9 +619,12 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                               {item.modelFileName || "선택된 파일 없음"}
                             </span>
                           </label>
-                          <p className="field-help">
-                            지원 형식: {MODEL_FILE_EXTENSIONS.join(", ")}
-                          </p>
+                          {isLoading ? (
+                            <p className="field-help">
+                              ⏳ 분석 서버를 깨우고 있습니다. 서버가 한동안 사용되지 않아 잠자기
+                              상태였다면 최대 1분 정도 걸릴 수 있습니다...
+                            </p>
+                          ) : null}
                           {itemErrors.modelFile ? <p className="error">{itemErrors.modelFile}</p> : null}
                         </div>
 
@@ -1189,6 +1192,14 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                 <p><strong>모델링 파일 인식</strong> — STEP/STP 파일의 조립 트리를 분석해 부품명·수량·체적 메타데이터를 읽습니다.</p>
                 <p><strong>여러 항목 합산</strong> — 각 항목을 개별 계산한 뒤 총합으로 다시 합산합니다. 수동 입력은 질량·하중 기준으로 바로 환산합니다.</p>
                 <p><strong>기본 공식</strong> — 질량 = 체적 × 밀도, 중량(N) = 질량 × 9.81, 안전율 반영 하중(N) = 중량 × 안전율</p>
+              </div>
+              <div className="note-box note-box--quick load-upload-notice">
+                <p>
+                  <strong>모델링 파일 업로드 제한 — STEP, STP만 지원, 파일당 최대 50MB</strong>
+                </p>
+                <p>
+                  <strong>⏳ 체적 분석 서버가 잠자기 상태였다면, 깨어나는 데 최대 1분 정도 걸릴 수 있습니다.</strong>
+                </p>
               </div>
               <p className="empty-box--guide-footnote">
                 여러 항목을 입력하거나 모델링 파일을 업로드한 뒤 합산 계산하기를 누르면

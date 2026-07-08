@@ -21,3 +21,25 @@ contextBridge.exposeInMainWorld("desktopApp", {
     ipcRenderer.removeAllListeners("ollama-pull-progress");
   },
 });
+
+contextBridge.exposeInMainWorld("converterApp", {
+  getConfig: () => ipcRenderer.invoke("converter:get-config"),
+  chooseFiles: (conversionType) => ipcRenderer.invoke("converter:choose-files", conversionType),
+  chooseOutputFolder: () => ipcRenderer.invoke("converter:choose-output-folder"),
+  checkDiskSpace: (outputDir, files) => ipcRenderer.invoke("converter:check-disk-space", { outputDir, files }),
+  convert: (payload) => ipcRenderer.invoke("converter:convert", payload),
+  cancel: (jobId) => ipcRenderer.invoke("converter:cancel", jobId),
+  listProfiles: () => ipcRenderer.invoke("converter:list-profiles"),
+  saveProfile: (profile) => ipcRenderer.invoke("converter:save-profile", profile),
+  deleteProfile: (profileId) => ipcRenderer.invoke("converter:delete-profile", profileId),
+  previewImage: (filePath) => ipcRenderer.invoke("converter:preview-image", filePath),
+  previewAscii: (filePath) => ipcRenderer.invoke("converter:preview-ascii", filePath),
+  previewTable: (filePath) => ipcRenderer.invoke("converter:preview-table", filePath),
+  previewPdfBase64: (filePath) => ipcRenderer.invoke("converter:preview-pdf-base64", filePath),
+  previewText: (filePath) => ipcRenderer.invoke("converter:preview-text", filePath),
+  onProgress: (cb) => {
+    const listener = (_e, payload) => cb(payload);
+    ipcRenderer.on("converter:progress", listener);
+    return () => ipcRenderer.removeListener("converter:progress", listener);
+  },
+});

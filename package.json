@@ -5,7 +5,7 @@
   "description": "Offline-capable desktop tool for motor sizing, load calculation, and product database management.",
   "type": "module",
   "main": "electron/main.cjs",
-  "productName": "PAL 랩 스튜디오",
+  "productName": "이지랩 스튜디오",
   "author": "OpenAI Codex + user workspace",
   "scripts": {
     "dev": "vite --configLoader native",
@@ -21,11 +21,17 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@supabase/supabase-js": "^2.110.0",
+    "iconv-lite": "^0.6.3",
+    "jschardet": "^3.1.4",
     "occt-import-js": "^0.0.23",
+    "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "three": "^0.184.0"
+    "sharp": "^0.35.1",
+    "three": "^0.184.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -39,12 +45,11 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "png-to-ico": "^3.0.1",
-    "sharp": "^0.35.1",
     "vite": "^8.0.1"
   },
   "build": {
     "appId": "com.postech.motorsimulator",
-    "productName": "PAL 랩 스튜디오",
+    "productName": "이지랩 스튜디오",
     "directories": {
       "output": "release"
     },
@@ -52,6 +57,10 @@
       "dist/**/*",
       "electron/**/*",
       "package.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/sharp/**",
+      "**/node_modules/@img/**"
     ],
     "extraMetadata": {
       "main": "electron/main.cjs"
@@ -79,14 +88,14 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PAL 랩 스튜디오",
+      "shortcutName": "이지랩 스튜디오",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico",
-      "artifactName": "PAL-Lab-Studio-Setup-${version}-${arch}.${ext}"
+      "artifactName": "EasyLab-Studio-Setup-${version}-${arch}.${ext}"
     },
     "portable": {
-      "artifactName": "PAL-Lab-Studio-Portable-${version}-${arch}.${ext}"
+      "artifactName": "EasyLab-Studio-Portable-${version}-${arch}.${ext}"
     }
   }
 }
