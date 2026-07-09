@@ -645,8 +645,9 @@ export function getLmGuideRecommendation(peakForceNOrWeightKg, environment, isPe
     manufacturer: "THK",
     model: guide.label,
     reason: `피크 하중 ${peakForceN.toFixed(0)} N 기준 — 목표 수명 ${L_TARGET_KM.toLocaleString()}km에서 필요 동하중 C = ${C_required_total.toFixed(0)} N. ${guide.label} 선정 시 예상 수명 ${achievedLifeKm > 99999 ? "100,000km 초과" : achievedLifeKm.toLocaleString("ko-KR", { maximumFractionDigits: 0 }) + "km"}.`,
-    notes: `${environmentLabel} 조건 — 씰 등급·윤활 방식·블록 예압(Z0/ZA/ZB)을 THK에 사전 확인하세요.`,
+    notes: `${environmentLabel} 조건 — 씰 등급·윤활 방식·블록 예압(Z0/ZA/ZB)을 THK에 사전 확인하세요. 동일 클래스(${guide.class})의 레일·블록은 MISUMI 카탈로그(THK/IKO 대응 규격 포함)에서도 소량·단납기로 구매할 수 있어 견적 비교용으로 함께 확인하면 좋습니다.`,
     catalogUrl: "https://www.thk.com/",
+    alternativeCatalogUrl: "https://kr.misumi-ec.com/",
   };
 }
 
@@ -1060,6 +1061,8 @@ function buildDrivePackage({
       reason: lmGuideRecommendation.reason,
       notes: lmGuideRecommendation.notes,
       url: lmGuideRecommendation.catalogUrl ?? null,
+      alternativeUrl: lmGuideRecommendation.alternativeCatalogUrl ?? null,
+      alternativeLabel: "MISUMI에서 비교 ↗",
     },
     {
       id: "encoder",

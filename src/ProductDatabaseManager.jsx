@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BALL_SCREW_SAMPLE_ROW,
+  ELECTRIC_ACTUATOR_SAMPLE_ROW,
   ENCODER_SAMPLE_ROW,
+  getFieldLabel,
   LM_GUIDE_SAMPLE_ROW,
   MOTOR_SAMPLE_ROW,
   PRODUCT_DB_CATEGORIES,
@@ -19,6 +21,7 @@ const SAMPLE_ROWS = {
   motor: MOTOR_SAMPLE_ROW,
   reducer: REDUCER_SAMPLE_ROW,
   ballScrew: BALL_SCREW_SAMPLE_ROW,
+  electricActuator: ELECTRIC_ACTUATOR_SAMPLE_ROW,
   lmGuide: LM_GUIDE_SAMPLE_ROW,
   encoder: ENCODER_SAMPLE_ROW,
   vacuum: VACUUM_SAMPLE_ROW,
@@ -34,6 +37,25 @@ function stringifyDisplayValue(value) {
   }
 
   return String(value);
+}
+
+function renderFieldValue(value) {
+  if (value === "catalog_check_required") {
+    return <span className="badge-check-required">확인 필요</span>;
+  }
+
+  return stringifyDisplayValue(value);
+}
+
+function compareGroupKeys(keyA, keyB) {
+  const numA = Number(keyA);
+  const numB = Number(keyB);
+
+  if (Number.isFinite(numA) && Number.isFinite(numB)) {
+    return numA - numB;
+  }
+
+  return keyA.localeCompare(keyB, "ko");
 }
 
 function normalizeCellValue(value) {
@@ -223,7 +245,7 @@ function downloadBlob(fileName, mimeType, content) {
 
 function getKeySpecSummary(item, config) {
   return config.keySpecs
-    .map((field) => `${field}: ${stringifyDisplayValue(item[field])}`)
+    .map((field) => `${getFieldLabel(field)}: ${stringifyDisplayValue(item[field])}`)
     .join(" / ");
 }
 
@@ -235,6 +257,9 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
   const [selectedId, setSelectedId] = useState("");
   const [uploadState, setUploadState] = useState(null);
   const [hasSelectedManually, setHasSelectedManually] = useState(false);
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState(() => new Set());
+  const [allGroupsExpanded, setAllGroupsExpanded] = useState(false);
 
   const config = PRODUCT_DB_CONFIG[activeTab];
   const currentCategory = PRODUCT_DB_CATEGORIES.find((category) => category.id === activeCategory);
@@ -290,14 +315,16 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
       groupsByKey.get(key).push(item);
     });
 
+    const directionSign = sortDirection === "desc" ? -1 : 1;
+
     return Array.from(groupsByKey.entries())
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB, "ko"))
+      .sort(([keyA], [keyB]) => compareGroupKeys(keyA, keyB) * directionSign)
       .map(([key, groupItems]) => ({
         key,
         label: key,
         items: [...groupItems].sort((a, b) => String(a.manufacturer ?? "").localeCompare(String(b.manufacturer ?? ""), "ko")),
       }));
-  }, [filteredItems, config.compareField]);
+  }, [filteredItems, config.compareField, sortDirection]);
 
   const selectedItem = useMemo(() => {
     return filteredItems.find((item) => item.id === selectedId) ?? filteredItems[0] ?? null;
@@ -314,7 +341,27 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
     setSearchKeyword("");
     setSelectedId("");
     setUploadState(null);
+    setSortDirection("asc");
+    setExpandedGroupKeys(new Set());
+    setAllGroupsExpanded(false);
   }, [activeTab]);
+
+  function toggleGroup(key) {
+    setExpandedGroupKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function toggleAllGroups() {
+    setAllGroupsExpanded((current) => !current);
+    setExpandedGroupKeys(new Set());
+  }
 
   async function handleFileChange(event) {
     const file = event.target.files?.[0];
@@ -489,58 +536,85 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
               <h2>{config.title} 목록</h2>
               <p>
                 {config.compareLabel
-                  ? `${config.compareLabel}이(가) 같은 항목끼리 묶어, 제조사별로 바로 비교할 수 있습니다.`
+                  ? `${config.compareLabel}이(가) 같은 항목끼리 묶어, 제조사별로 바로 비교할 수 있습니다. 그룹을 눌러 펼쳐보세요.`
                   : "제조사, 모델명, 시리즈, 주요 사양, 카탈로그 링크를 빠르게 확인할 수 있습니다."}
               </p>
             </div>
           </div>
 
-          <div className="db-list">
-            {comparisonGroups.map((group) => (
-              <div className="db-list-group" key={group.key ?? "all"}>
-                {group.label ? (
-                  <div className="db-list-group__header">
-                    <span>{config.compareLabel}: {group.label}</span>
-                    <small>{group.items.length}개 제조사 비교</small>
-                  </div>
-                ) : null}
+          {comparisonGroups.length > 0 && comparisonGroups[0].label ? (
+            <div className="db-list-toolbar">
+              <button type="button" className="ghost-button db-list-toolbar__button" onClick={toggleAllGroups}>
+                {allGroupsExpanded ? "전체 접기" : "전체 펼치기"}
+              </button>
+              <button
+                type="button"
+                className="ghost-button db-list-toolbar__button"
+                onClick={() => setSortDirection((current) => (current === "asc" ? "desc" : "asc"))}
+              >
+                {config.compareLabel} {sortDirection === "asc" ? "낮은순 ▲" : "높은순 ▼"}
+              </button>
+            </div>
+          ) : null}
 
-                {group.items.map((item) => (
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    key={item.id}
-                    className={`db-list-item${selectedItem?.id === item.id ? " is-selected" : ""}`}
-                    onClick={() => { setSelectedId(item.id); setHasSelectedManually(true); }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        setSelectedId(item.id);
-                        setHasSelectedManually(true);
-                      }
-                    }}
-                  >
-                    <div className="db-list-item__head">
-                      <strong>{item.model}</strong>
-                      <span>{item.manufacturer}</span>
-                    </div>
-                    <p>{item.series}</p>
-                    <small>{getKeySpecSummary(item, config)}</small>
-                    {item.catalogUrl ? (
-                      <a
-                        href={item.catalogUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="db-item-catalog-link"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        카탈로그 열기 ↗
-                      </a>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ))}
+          <div className="db-list">
+            {comparisonGroups.map((group) => {
+              const isExpanded = group.label
+                ? (expandedGroupKeys.has(group.key) ? !allGroupsExpanded : allGroupsExpanded)
+                : true;
+
+              return (
+                <div className="db-list-group" key={group.key ?? "all"}>
+                  {group.label ? (
+                    <button
+                      type="button"
+                      className="db-list-group__header"
+                      onClick={() => toggleGroup(group.key)}
+                    >
+                      <span>{config.compareLabel}: {group.label}</span>
+                      <small>{group.items.length}개 제조사 비교 {isExpanded ? "▲" : "▼"}</small>
+                    </button>
+                  ) : null}
+
+                  {isExpanded
+                    ? group.items.map((item) => (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          key={item.id}
+                          className={`db-list-item${selectedItem?.id === item.id ? " is-selected" : ""}`}
+                          onClick={() => { setSelectedId(item.id); setHasSelectedManually(true); }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setSelectedId(item.id);
+                              setHasSelectedManually(true);
+                            }
+                          }}
+                        >
+                          <div className="db-list-item__head">
+                            <strong>{item.model}</strong>
+                            <span>{item.manufacturer}</span>
+                          </div>
+                          <p>{item.series}</p>
+                          <small>{getKeySpecSummary(item, config)}</small>
+                          {item.catalogUrl ? (
+                            <a
+                              href={item.catalogUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="db-item-catalog-link"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              카탈로그 열기 ↗
+                            </a>
+                          ) : null}
+                        </div>
+                      ))
+                    : null}
+                </div>
+              );
+            })}
 
             {filteredItems.length === 0 ? (
               <div className="empty-box">
@@ -576,8 +650,8 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
               <div className="db-detail-grid">
                 {config.fields.map((field) => (
                   <div className="db-detail-row" key={field}>
-                    <span>{field}</span>
-                    <strong>{stringifyDisplayValue(selectedItem[field])}</strong>
+                    <span>{getFieldLabel(field)}</span>
+                    <strong>{renderFieldValue(selectedItem[field])}</strong>
                   </div>
                 ))}
               </div>
@@ -630,7 +704,7 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
                   <thead>
                     <tr>
                       {config.fields.slice(0, 6).map((field) => (
-                        <th key={field}>{field}</th>
+                        <th key={field}>{getFieldLabel(field)}</th>
                       ))}
                     </tr>
                   </thead>

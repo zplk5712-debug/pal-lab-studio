@@ -43,12 +43,33 @@ async function convertImageFormatBlob(file, targetFormat, quality = 0.9) {
   });
 }
 
+// 이미지 픽셀 수를 그대로 PDF 포인트로 쓰면 큰 사진이 비정상적으로 큰 페이지가 되므로,
+// A4 안에 비율을 유지한 채 맞춰 넣는다 (가로가 더 길면 가로 A4 사용).
+const A4_PORTRAIT = [595.28, 841.89];
+
+function fitImageToA4(imageWidth, imageHeight) {
+  const isLandscape = imageWidth > imageHeight;
+  const [pageWidth, pageHeight] = isLandscape ? [A4_PORTRAIT[1], A4_PORTRAIT[0]] : A4_PORTRAIT;
+  const scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
+  const drawWidth = imageWidth * scale;
+  const drawHeight = imageHeight * scale;
+  return {
+    pageWidth,
+    pageHeight,
+    drawWidth,
+    drawHeight,
+    x: (pageWidth - drawWidth) / 2,
+    y: (pageHeight - drawHeight) / 2,
+  };
+}
+
 async function embedImageInPdf(pdfDoc, file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const ext = getExtension(file.name);
   const image = ext === "png" ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-  const page = pdfDoc.addPage([image.width, image.height]);
-  page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+  const layout = fitImageToA4(image.width, image.height);
+  const page = pdfDoc.addPage([layout.pageWidth, layout.pageHeight]);
+  page.drawImage(image, { x: layout.x, y: layout.y, width: layout.drawWidth, height: layout.drawHeight });
 }
 
 async function convertImageToPdfBlob(file) {
@@ -86,10 +107,10 @@ async function convertExcelToCsvBlobs(file) {
   }));
 }
 
-async function convertCsvToExcelBlob(file) {
+async function convertCsvToExcelBlob(file, options = {}) {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const text = decodeBytes(bytes);
-  const delimiter = detectCsvDelimiter(text);
+  const text = decodeBytes(bytes, options.encoding);
+  const delimiter = detectCsvDelimiter(text, options.delimiter);
   const rows = parseCsvText(text, delimiter);
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
@@ -98,10 +119,16 @@ async function convertCsvToExcelBlob(file) {
   return new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
-async function convertAsciiDataBlob(file, targetFormat) {
+async function parseAsciiDataFromFile(file, options = {}) {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const text = decodeBytes(bytes);
-  const { metadata, columns, rowCount } = parseAsciiDataText(text);
+  const text = decodeBytes(bytes, options.encoding);
+  return parseAsciiDataText(text, options);
+}
+
+// 한 번 파싱한 ASCII 데이터를 지정된 형식(csv/xlsx/json) 하나의 Blob으로 직렬화한다.
+// 여러 형식을 동시에 뽑을 때 파일을 매번 다시 파싱하지 않도록 파싱과 직렬화를 분리했다.
+function serializeAsciiData(parsed, targetFormat) {
+  const { metadata, columns, rowCount } = parsed;
   const columnLabels = columns.map((_, index) => `col${index + 1}`);
   const rows = Array.from({ length: rowCount }, (_, rowIndex) => columns.map((col) => col[rowIndex]));
 
@@ -132,8 +159,13 @@ export async function convertOneFileBlob(conversionType, file, options) {
   const base = getBaseName(file.name);
 
   if (conversionType === "image-format") {
-    const blob = await convertImageFormatBlob(file, options.targetFormat, 0.9);
-    return [{ name: `${base}.${options.targetFormat}`, blob }];
+    const targetFormats = options.targetFormats?.length ? options.targetFormats : ["jpg"];
+    const outputs = [];
+    for (const targetFormat of targetFormats) {
+      const blob = await convertImageFormatBlob(file, targetFormat, 0.9);
+      outputs.push({ name: `${base}.${targetFormat}`, blob });
+    }
+    return outputs;
   }
 
   if (conversionType === "images-to-pdf") {
@@ -143,7 +175,7 @@ export async function convertOneFileBlob(conversionType, file, options) {
 
   if (conversionType === "excel-csv") {
     if (ext === "csv") {
-      const blob = await convertCsvToExcelBlob(file);
+      const blob = await convertCsvToExcelBlob(file, options);
       return [{ name: `${base}.xlsx`, blob }];
     }
     const sheets = await convertExcelToCsvBlobs(file);
@@ -151,9 +183,12 @@ export async function convertOneFileBlob(conversionType, file, options) {
   }
 
   if (conversionType === "ascii-data") {
-    const targetFormat = options.targetFormat || "csv";
-    const blob = await convertAsciiDataBlob(file, targetFormat);
-    return [{ name: `${base}.${targetFormat}`, blob }];
+    const targetFormats = options.targetFormats?.length ? options.targetFormats : ["csv"];
+    const parsed = await parseAsciiDataFromFile(file, options);
+    return targetFormats.map((targetFormat) => ({
+      name: `${base}.${targetFormat}`,
+      blob: serializeAsciiData(parsed, targetFormat),
+    }));
   }
 
   throw new Error(`알 수 없는 변환 유형: ${conversionType}`);

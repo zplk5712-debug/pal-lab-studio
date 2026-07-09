@@ -11,6 +11,9 @@ export const MANUAL_LOAD_INPUT_OPTIONS = [
 
 export const MODEL_FILE_EXTENSIONS = [".step", ".stp"];
 
+export const MAX_MODEL_FILE_SIZE_MB = 50;
+export const MAX_MODEL_FILE_SIZE_BYTES = MAX_MODEL_FILE_SIZE_MB * 1024 * 1024;
+
 export const SHAPE_OPTIONS = [
   {
     value: "box",

@@ -85,6 +85,7 @@ export default function MotorSimulator({ onBack, prefill }) {
   const [cyclesPerMin, setCyclesPerMin] = useState("");
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   const [calcHistory, setCalcHistory] = useState([]);
+  const [isCalculating, setIsCalculating] = useState(false);
   const historyRef = useRef(null);
 
   const availableScrewSpecs = useMemo(
@@ -351,35 +352,70 @@ export default function MotorSimulator({ onBack, prefill }) {
       requiredSpeedMmS: numericInputs.speedMm,
     };
 
-    const webSearchData = await runWebSearch(searchPayload);
+    setIsCalculating(true);
+    try {
+      const webSearchData = await runWebSearch(searchPayload);
 
-    if (webSearchData.candidates.length > 0) {
-      const mergedRecommendations = getProductRecommendations({
-        ...recommendationParams,
-        catalog: [...PRODUCT_CATALOG, ...webSearchData.candidates],
-      });
+      if (webSearchData.candidates.length > 0) {
+        const mergedRecommendations = getProductRecommendations({
+          ...recommendationParams,
+          catalog: [...PRODUCT_CATALOG, ...webSearchData.candidates],
+        });
 
-      setResult(
-        buildSimulationResult({
-          company,
-          direction,
-          environment,
-          precisionLevel,
-          numericInputs: { ...numericInputs, motionProfile },
-          designPower,
-          peakTorque,
-          rpm,
-          thrust,
-          power,
-          torque,
-          gearRatio,
-          fallbackReducer,
-          productRecommendations: mergedRecommendations,
-          ballScrewRecommendation: finalBallScrewRecommendation,
-          lmGuideRecommendation: finalLmGuideRecommendation,
-        }),
-      );
+        setResult(
+          buildSimulationResult({
+            company,
+            direction,
+            environment,
+            precisionLevel,
+            numericInputs: { ...numericInputs, motionProfile },
+            designPower,
+            peakTorque,
+            rpm,
+            thrust,
+            power,
+            torque,
+            gearRatio,
+            fallbackReducer,
+            productRecommendations: mergedRecommendations,
+            ballScrewRecommendation: finalBallScrewRecommendation,
+            lmGuideRecommendation: finalLmGuideRecommendation,
+          }),
+        );
+      }
+    } finally {
+      setIsCalculating(false);
     }
+  };
+
+  const handleReset = () => {
+    setDetailMode(false);
+    setCompany("all");
+    setMotorType("전체");
+    setPhaseType("전체");
+    setEnvironment("general");
+    setPrecisionLevel("general");
+    setDirection("vertical");
+    setSpeedMode("constant");
+    setWeight("");
+    setSpeed("");
+    setMinSpeedInput("");
+    setMaxSpeedInput("");
+    setStroke("");
+    setTargetTime("");
+    setScrewType("ball");
+    setScrewSpec("M16");
+    setLead("10");
+    setErrors({});
+    setResult(null);
+    setCyclesPerMin("");
+    setIsRoundTrip(false);
+    setWebRecommendations([]);
+    setWebManuals([]);
+    setWebCandidateProducts([]);
+    setWebSearchStatus("idle");
+    setWebSearchError("");
+    setWebSearchParams(null);
   };
 
   return (
@@ -525,6 +561,9 @@ export default function MotorSimulator({ onBack, prefill }) {
               <input type="checkbox" checked={isRoundTrip} onChange={(e) => setIsRoundTrip(e.target.checked)} />
               <span>왕복 이송 (편도×2)</span>
             </label>
+            <small className="field-help" style={{ marginTop: "-4px", marginBottom: "8px" }}>
+              왕복 이송은 듀티사이클·발열 경고 계산에만 반영됩니다. 피크 추력/토크는 방향별 최악 조건(수직 상승 등) 기준으로 편도 계산합니다.
+            </small>
 
             <div className="detail-toggle">
               <label className="check-field">
@@ -533,15 +572,29 @@ export default function MotorSimulator({ onBack, prefill }) {
                   checked={detailMode}
                   onChange={(event) => {
                     const nextChecked = event.target.checked;
-                    setDetailMode(nextChecked);
 
                     if (!nextChecked) {
+                      const hasCustomDetail =
+                        company !== "all" ||
+                        motorType !== "전체" ||
+                        phaseType !== "전체" ||
+                        environment !== "general" ||
+                        precisionLevel !== "general";
+
+                      if (hasCustomDetail && !window.confirm(
+                        "상세 모드를 끄면 회사·정밀도·환경 조건·모터 종류 설정이 초기화됩니다. 계속할까요?",
+                      )) {
+                        return;
+                      }
+
                       setCompany("all");
                       setMotorType("전체");
                       setPhaseType("전체");
                       setEnvironment("general");
                       setPrecisionLevel("general");
                     }
+
+                    setDetailMode(nextChecked);
                   }}
                 />
                 <span>상세 모드</span>
@@ -663,8 +716,11 @@ export default function MotorSimulator({ onBack, prefill }) {
             ) : null}
 
             <div className="input-actions">
-              <button type="submit" className="button">
-                패키지 추천 계산
+              <button type="submit" className="button" disabled={isCalculating}>
+                {isCalculating ? "계산 중..." : "패키지 추천 계산"}
+              </button>
+              <button type="button" className="ghost-button" onClick={handleReset} disabled={isCalculating}>
+                입력 초기화
               </button>
             </div>
           </form>

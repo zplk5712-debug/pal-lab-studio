@@ -10,8 +10,18 @@ const DELIMITER_CANDIDATES = [
   { name: "whitespace", regex: /\s+/ },
 ];
 
-// 자동감지된 인코딩으로 버퍼를 텍스트로 디코딩한다. 실패하면 UTF-8로 폴백.
-function decodeBuffer(buffer) {
+// 인코딩을 지정(forcedEncoding)하면 자동감지 없이 그 인코딩으로 바로 디코딩한다.
+// "auto"거나 지정이 없으면 기존처럼 자동감지 후 실패 시 UTF-8로 폴백.
+function decodeBuffer(buffer, forcedEncoding) {
+  if (forcedEncoding && forcedEncoding !== "auto") {
+    if (/^utf-?8$/i.test(forcedEncoding)) {
+      return buffer.toString("utf8");
+    }
+    if (iconv.encodingExists(forcedEncoding)) {
+      return iconv.decode(buffer, forcedEncoding);
+    }
+  }
+
   const detected = jschardet.detect(buffer);
   const encoding = (detected && detected.encoding) || "UTF-8";
 
@@ -41,8 +51,15 @@ function countNumericTokens(tokens) {
   return tokens.filter((token) => NUMERIC_TOKEN.test(token)).length;
 }
 
-// 주어진 라인들 중 어떤 구분자가 숫자 데이터 라인을 가장 잘 인식하는지 찾는다.
-function detectDelimiter(lines) {
+// 구분자를 지정(forcedDelimiterName)하면 자동감지 없이 그 구분자를 바로 사용한다.
+function detectDelimiter(lines, forcedDelimiterName) {
+  if (forcedDelimiterName && forcedDelimiterName !== "auto") {
+    const forced = DELIMITER_CANDIDATES.find((candidate) => candidate.name === forcedDelimiterName);
+    if (forced) {
+      return forced;
+    }
+  }
+
   let best = { name: "whitespace", regex: /\s+/, score: -1 };
 
   for (const candidate of DELIMITER_CANDIDATES) {
@@ -82,9 +99,10 @@ class AsciiDataParseError extends Error {
 }
 
 // 실험 장비 ASCII 데이터 파일(txt/dat/asc/prn)을 헤더 메타데이터 + XY 숫자 데이터 배열로 파싱한다.
-async function parseAsciiDataFile(filePath) {
+// options.encoding/options.delimiter를 지정하면 자동감지 대신 그 값을 강제로 사용한다(수동 폴백).
+async function parseAsciiDataFile(filePath, options = {}) {
   const buffer = await fs.readFile(filePath);
-  const text = decodeBuffer(buffer);
+  const text = decodeBuffer(buffer, options.encoding);
   const allLines = text.split(/\r\n|\n|\r/).filter((line) => line.trim() !== "");
 
   if (allLines.length === 0) {
@@ -93,7 +111,7 @@ async function parseAsciiDataFile(filePath) {
 
   // 뒤쪽 일부 라인을 표본으로 구분자를 판정 (헤더에 숫자가 섞여도 영향 최소화)
   const sampleLines = allLines.slice(Math.max(0, allLines.length - Math.min(50, allLines.length)));
-  const delimiter = detectDelimiter(sampleLines);
+  const delimiter = detectDelimiter(sampleLines, options.delimiter);
 
   let dataStartIndex = allLines.findIndex((line) => isLikelyDataLine(line, delimiter.regex));
 

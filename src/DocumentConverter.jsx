@@ -3,6 +3,8 @@ import ConverterPreviewPane from "./DocumentConverterPreview";
 import { createElectronEngine } from "./converterEngine/electronEngine";
 import { createWebEngine } from "./converterEngine/webEngine";
 
+const MAX_BATCH_FILES = 50;
+
 const CONVERSION_TYPES = [
   { id: "image-format", title: "이미지 포맷 변환", hint: "jpg·png·webp 간 형식을 바꿔요." },
   { id: "images-to-pdf", title: "이미지 → PDF", hint: "여러 이미지를 PDF로 만들어요." },
@@ -16,10 +18,20 @@ function getExtension(name) {
 }
 
 function defaultOptionsFor(conversionType) {
-  if (conversionType === "image-format") return { targetFormat: "jpg" };
+  if (conversionType === "image-format") return { targetFormats: ["jpg"] };
   if (conversionType === "images-to-pdf") return { mergeIntoSinglePdf: false };
-  if (conversionType === "ascii-data") return { targetFormat: "xlsx" };
+  if (conversionType === "excel-csv") return { encoding: "auto", delimiter: "auto" };
+  if (conversionType === "ascii-data") return { targetFormats: ["xlsx"], encoding: "auto", delimiter: "auto" };
   return {};
+}
+
+function toggleFormat(list, format) {
+  return list.includes(format) ? list.filter((item) => item !== format) : [...list, format];
+}
+
+// 결과 파일 하나(경로 문자열 또는 { name } 웹 디스크립터)의 이름/확장자를 알아낸다.
+function outputRefName(ref) {
+  return typeof ref === "string" ? ref.split(/[\\/]/).pop() : ref.name;
 }
 
 export default function DocumentConverter({ onBack }) {
@@ -96,20 +108,32 @@ export default function DocumentConverter({ onBack }) {
   function addEntries(entries) {
     if (!entries || entries.length === 0) return;
     let firstNewIndex = -1;
+    let truncated = false;
 
     setFiles((current) => {
       const existingKeys = new Set(current.map((f) => f.key));
-      const additions = entries
+      let additions = entries
         .filter((entry) => entry && !existingKeys.has(entry.key))
         .map((entry) => ({
           ...entry,
           supported: supportedExtensions.length === 0 || supportedExtensions.includes(getExtension(entry.name)),
         }));
+
+      const remainingSlots = MAX_BATCH_FILES - current.length;
+      if (additions.length > remainingSlots) {
+        additions = additions.slice(0, Math.max(0, remainingSlots));
+        truncated = true;
+      }
+
       if (additions.length > 0) {
         firstNewIndex = current.length;
       }
       return [...current, ...additions];
     });
+
+    if (truncated) {
+      setNotice(`한 번에 최대 ${MAX_BATCH_FILES}개까지 변환할 수 있어요 — 초과분은 추가되지 않았어요.`);
+    }
 
     if (firstNewIndex !== -1) {
       setActiveIndex((current) => (current === -1 ? firstNewIndex : current));
@@ -285,6 +309,12 @@ export default function DocumentConverter({ onBack }) {
   const activeFile = activeIndex >= 0 ? files[activeIndex] : null;
   const activeResult = activeFile ? results[activeFile.key] : null;
 
+  // 결과 파일이 여러 개(다중 형식 동시 변환, 엑셀 다중 시트 등)일 때 어떤 걸 미리 볼지
+  const [selectedOutputIndex, setSelectedOutputIndex] = useState(0);
+  useEffect(() => {
+    setSelectedOutputIndex(0);
+  }, [activeResult]);
+
   // 미리보기 로딩 — 원본 (좌측, 현재 선택된 1개 파일만)
   useEffect(() => {
     let cancelled = false;
@@ -297,9 +327,15 @@ export default function DocumentConverter({ onBack }) {
         if (conversionType === "image-format" || conversionType === "images-to-pdf") {
           next = { kind: "image", data: await engine.previewImage(activeFile.ref) };
         } else if (conversionType === "excel-csv") {
-          next = { kind: "table", data: await engine.previewTable(activeFile.ref) };
+          next = {
+            kind: "table",
+            data: await engine.previewTable(activeFile.ref, { encoding: options.encoding, delimiter: options.delimiter }),
+          };
         } else if (conversionType === "ascii-data") {
-          next = { kind: "ascii", data: await engine.previewAscii(activeFile.ref) };
+          next = {
+            kind: "ascii",
+            data: await engine.previewAscii(activeFile.ref, { encoding: options.encoding, delimiter: options.delimiter }),
+          };
         }
         if (!cancelled) {
           if (previewObjectUrlsRef.current.original) URL.revokeObjectURL(previewObjectUrlsRef.current.original);
@@ -315,14 +351,14 @@ export default function DocumentConverter({ onBack }) {
     return () => {
       cancelled = true;
     };
-  }, [activeFile, conversionType, engine]);
+  }, [activeFile, conversionType, engine, options.encoding, options.delimiter]);
 
-  // 미리보기 로딩 — 결과 (우측, 변환이 성공한 경우에만)
+  // 미리보기 로딩 — 결과 (우측, 변환이 성공한 경우에만, 여러 출력 중 선택된 1개)
   useEffect(() => {
     let cancelled = false;
     setResultPreview(null);
     if (!activeResult || !activeResult.success || !activeResult.outputPaths?.length) return undefined;
-    const outputRef = activeResult.outputPaths[0];
+    const outputRef = activeResult.outputPaths[selectedOutputIndex] || activeResult.outputPaths[0];
 
     async function loadResult() {
       try {
@@ -334,8 +370,9 @@ export default function DocumentConverter({ onBack }) {
         } else if (conversionType === "excel-csv") {
           next = { kind: "table", data: await engine.previewTable(outputRef) };
         } else if (conversionType === "ascii-data") {
+          const outputExt = getExtension(outputRefName(outputRef));
           next =
-            options.targetFormat === "json"
+            outputExt === ".json"
               ? { kind: "text", data: await engine.previewText(outputRef) }
               : { kind: "table", data: await engine.previewTable(outputRef) };
         }
@@ -353,10 +390,12 @@ export default function DocumentConverter({ onBack }) {
     return () => {
       cancelled = true;
     };
-  }, [activeResult, conversionType, options.targetFormat, engine]);
+  }, [activeResult, selectedOutputIndex, conversionType, engine]);
 
   const failedCount = Object.values(results).filter((r) => !r.success).length;
   const successCount = Object.values(results).filter((r) => r.success).length;
+  const needsTargetFormats = conversionType === "image-format" || conversionType === "ascii-data";
+  const hasNoTargetFormats = needsTargetFormats && (options.targetFormats?.length ?? 0) === 0;
 
   return (
     <div className="app app--converter">
@@ -411,7 +450,8 @@ export default function DocumentConverter({ onBack }) {
               onChange={handleFileInputChange}
             />
             <p className="converter-hint">
-              변환된 파일은 원본 이름을 그대로 유지해요 (같은 이름이 있으면 자동으로 _1, _2가 붙어요).
+              변환된 파일은 원본 이름을 그대로 유지해요 (같은 이름이 있으면 자동으로 _1, _2가 붙어요). 한 번에 최대{" "}
+              {MAX_BATCH_FILES}개까지 변환할 수 있어요.
             </p>
           </div>
 
@@ -489,17 +529,19 @@ export default function DocumentConverter({ onBack }) {
             </div>
 
             {conversionType === "image-format" ? (
-              <label className="converter-option">
-                변환할 형식
-                <select
-                  value={options.targetFormat}
-                  onChange={(event) => setOptions({ ...options, targetFormat: event.target.value })}
-                >
-                  <option value="jpg">JPG</option>
-                  <option value="png">PNG</option>
-                  <option value="webp">WEBP</option>
-                </select>
-              </label>
+              <div className="converter-option converter-format-checkboxes">
+                <span>변환할 형식 (여러 개 동시 선택 가능)</span>
+                {["jpg", "png", "webp"].map((format) => (
+                  <label key={format} className="converter-format-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={options.targetFormats.includes(format)}
+                      onChange={() => setOptions({ ...options, targetFormats: toggleFormat(options.targetFormats, format) })}
+                    />
+                    {format.toUpperCase()}
+                  </label>
+                ))}
+              </div>
             ) : null}
 
             {conversionType === "images-to-pdf" ? (
@@ -520,23 +562,62 @@ export default function DocumentConverter({ onBack }) {
             ) : null}
 
             {conversionType === "ascii-data" ? (
-              <label className="converter-option">
-                변환할 형식
-                <select
-                  value={options.targetFormat}
-                  onChange={(event) => setOptions({ ...options, targetFormat: event.target.value })}
-                >
-                  <option value="csv">CSV</option>
-                  <option value="xlsx">엑셀(XLSX)</option>
-                  <option value="json">JSON</option>
-                </select>
-              </label>
+              <div className="converter-option converter-format-checkboxes">
+                <span>변환할 형식 (여러 개 동시 선택 가능)</span>
+                {[
+                  { id: "csv", label: "CSV" },
+                  { id: "xlsx", label: "엑셀(XLSX)" },
+                  { id: "json", label: "JSON" },
+                ].map((format) => (
+                  <label key={format.id} className="converter-format-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={options.targetFormats.includes(format.id)}
+                      onChange={() =>
+                        setOptions({ ...options, targetFormats: toggleFormat(options.targetFormats, format.id) })
+                      }
+                    />
+                    {format.label}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+
+            {conversionType === "excel-csv" || conversionType === "ascii-data" ? (
+              <>
+                <label className="converter-option">
+                  인코딩
+                  <select
+                    value={options.encoding}
+                    onChange={(event) => setOptions({ ...options, encoding: event.target.value })}
+                  >
+                    <option value="auto">자동 감지</option>
+                    <option value="utf-8">UTF-8</option>
+                    <option value="euc-kr">CP949(EUC-KR)</option>
+                  </select>
+                </label>
+                <label className="converter-option">
+                  구분자
+                  <select
+                    value={options.delimiter}
+                    onChange={(event) => setOptions({ ...options, delimiter: event.target.value })}
+                  >
+                    <option value="auto">자동 감지</option>
+                    <option value="comma">콤마(,)</option>
+                    <option value="semicolon">세미콜론(;)</option>
+                    <option value="tab">탭</option>
+                  </select>
+                </label>
+                <p className="converter-option-note">
+                  왼쪽 원본 미리보기가 깨지거나 컬럼이 이상하게 보이면 인코딩·구분자를 직접 골라보세요.
+                </p>
+              </>
             ) : null}
 
             <div className="converter-profile-save">
               <input
                 type="text"
-                placeholder="현재 설정을 프로파일로 저장…"
+                placeholder="프로파일 이름"
                 value={profileNameDraft}
                 onChange={(event) => setProfileNameDraft(event.target.value)}
                 maxLength={40}
@@ -578,16 +659,36 @@ export default function DocumentConverter({ onBack }) {
               {activeResult && !activeResult.success ? (
                 <p className="converter-preview-error">{activeResult.error}</p>
               ) : (
-                <ConverterPreviewPane kind={resultPreview?.kind} data={resultPreview?.data} />
+                <>
+                  {activeResult?.success && activeResult.outputPaths.length > 1 ? (
+                    <div className="converter-output-tabs">
+                      {activeResult.outputPaths.map((outputRef, index) => (
+                        <button
+                          key={outputRefName(outputRef) + index}
+                          type="button"
+                          className={`converter-output-tab${index === selectedOutputIndex ? " converter-output-tab--active" : ""}`}
+                          onClick={() => setSelectedOutputIndex(index)}
+                        >
+                          {outputRefName(outputRef)}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <ConverterPreviewPane kind={resultPreview?.kind} data={resultPreview?.data} />
+                </>
               )}
             </div>
           </div>
+
+          {hasNoTargetFormats ? (
+            <p className="converter-disk-warning">⚠ 변환할 형식을 하나 이상 선택해주세요.</p>
+          ) : null}
 
           <div className="converter-action-row">
             <button
               type="button"
               className="button"
-              disabled={supportedFiles.length === 0 || !outputTarget || isConverting}
+              disabled={supportedFiles.length === 0 || !outputTarget || isConverting || hasNoTargetFormats}
               onClick={handleStartConversion}
             >
               {isConverting ? "변환 중…" : "변환 시작"}
@@ -626,9 +727,20 @@ export default function DocumentConverter({ onBack }) {
           ) : null}
 
           {Object.keys(results).length > 0 ? (
-            <p className="converter-result-summary">
-              성공 {successCount}개 · 실패 {failedCount}개
-            </p>
+            <div className="converter-result-summary-row">
+              <p className="converter-result-summary">
+                성공 {successCount}개 · 실패 {failedCount}개
+              </p>
+              {typeof engine.openOutputFolder === "function" ? (
+                <button
+                  type="button"
+                  className="ghost-button ghost-button--small"
+                  onClick={() => engine.openOutputFolder(outputTarget)}
+                >
+                  결과 폴더 열기
+                </button>
+              ) : null}
+            </div>
           ) : null}
 
           {notice ? <p className="converter-notice">{notice}</p> : null}

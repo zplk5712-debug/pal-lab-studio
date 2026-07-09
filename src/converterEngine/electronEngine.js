@@ -41,13 +41,16 @@ export function createElectronEngine() {
     cancel: (jobId) => api.cancel(jobId),
     onProgress: (cb) => api.onProgress(cb),
 
+    // 결과 폴더 열기 — 브라우저에는 OS 파일 탐색기를 여는 API가 없어서 데스크톱(Electron) 전용.
+    openOutputFolder: (outputTarget) => window.desktopApp?.openFolder(outputTarget.value),
+
     listProfiles: () => api.listProfiles(),
     saveProfile: (profile) => api.saveProfile(profile),
     deleteProfile: (profileId) => api.deleteProfile(profileId),
 
     previewImage: (ref) => api.previewImage(ref),
-    previewAscii: (ref) => api.previewAscii(ref),
-    previewTable: (ref) => api.previewTable(ref),
+    previewAscii: (ref, options) => api.previewAscii(ref, options),
+    previewTable: (ref, options) => api.previewTable(ref, options),
     previewPdfBase64: (ref) => api.previewPdfBase64(ref),
     previewText: (ref) => api.previewText(ref),
   };

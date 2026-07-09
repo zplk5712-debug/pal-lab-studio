@@ -77,6 +77,9 @@ const SimulatorProductsPanel = memo(function SimulatorProductsPanel({
                             {product.engineeringWarnings.map((w) => <li key={w}>{w}</li>)}
                           </ul>
                         )}
+                        {product.notes && !product.isPlaceholder && (
+                          <small className="recommend-item__notes">{product.notes}</small>
+                        )}
                       </article>
                     ))}
                   </div>
@@ -167,6 +170,12 @@ const SimulatorProductsPanel = memo(function SimulatorProductsPanel({
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {result && !import.meta.env.DEV && (
+              <div className="empty-box">
+                <p>공식 웹 검색 보강은 로컬 개발 환경에서만 제공됩니다. 배포 버전에서는 등록된 제품 DB 기준으로만 추천합니다.</p>
               </div>
             )}
           </>

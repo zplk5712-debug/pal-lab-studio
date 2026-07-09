@@ -90,7 +90,7 @@ function findBeamNodes(nodes, origin, dir, radius) {
 }
 
 // ─── Three.js 메시 ───────────────────────────────────────────────────────────
-function ThermalMesh({ meshData, temperatures, tMin, tMax, clickMode, onMeshClick, useLog }) {
+function ThermalMesh({ meshData, temperatures, tMin, tMax, clickMode, onMeshClick, onHover, useLog }) {
   const geometry = useMemo(() => {
     if (!meshData) return null;
     const { nodes, elements } = meshData;
@@ -117,9 +117,80 @@ function ThermalMesh({ meshData, temperatures, tMin, tMax, clickMode, onMeshClic
   return (
     <mesh geometry={geometry}
       onClick={clickMode ? (e) => { e.stopPropagation(); onMeshClick(e.point); } : undefined}
+      onPointerMove={temperatures && onHover ? (e) => {
+        e.stopPropagation();
+        const fi = e.faceIndex;
+        if (fi == null || !meshData) return;
+        const { elements } = meshData;
+        const t0 = temperatures[elements[fi*3]];
+        const t1 = temperatures[elements[fi*3+1]];
+        const t2 = temperatures[elements[fi*3+2]];
+        const avg = (t0 + t1 + t2) / 3;
+        onHover({ x: e.clientX, y: e.clientY, temp: avg });
+      } : undefined}
+      onPointerLeave={onHover ? () => onHover(null) : undefined}
       style={{ cursor: clickMode ? "crosshair" : "default" }}>
       <meshStandardMaterial vertexColors side={THREE.DoubleSide} />
     </mesh>
+  );
+}
+
+// ─── 단면 온도 그래프 ─────────────────────────────────────────────────────────
+function CrossSectionGraph({ nodes, temperatures, axis }) {
+  const data = useMemo(() => {
+    if (!nodes || !temperatures) return [];
+    const N = nodes.length / 3;
+    const axIdx = axis === "x" ? 0 : axis === "y" ? 1 : 2;
+    const pts = [];
+    for (let i = 0; i < N; i++)
+      pts.push({ pos: nodes[i*3 + axIdx], temp: temperatures[i] });
+    pts.sort((a, b) => a.pos - b.pos);
+    // 20 구간으로 빈닝
+    const mn = pts[0].pos, mx = pts[pts.length-1].pos;
+    const bins = 40;
+    const bw = (mx - mn) / bins || 1;
+    const buckets = Array.from({ length: bins }, () => []);
+    for (const { pos, temp } of pts) {
+      const bi = Math.min(Math.floor((pos - mn) / bw), bins - 1);
+      buckets[bi].push(temp);
+    }
+    return buckets.map((b, i) => ({
+      pos: mn + (i + 0.5) * bw,
+      temp: b.length ? b.reduce((s, v) => s + v, 0) / b.length : null,
+    })).filter(d => d.temp !== null);
+  }, [nodes, temperatures, axis]);
+
+  if (data.length === 0) return null;
+  const W = 340, H = 90, PAD = { l: 40, r: 10, t: 8, b: 24 };
+  const iW = W - PAD.l - PAD.r, iH = H - PAD.t - PAD.b;
+  const xs = data.map(d => d.pos), ys = data.map(d => d.temp);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+  const sx = v => PAD.l + (v - xMin) / (xMax - xMin || 1) * iW;
+  const sy = v => PAD.t + iH - (v - yMin) / (yMax - yMin || 1) * iH;
+  const pts = data.map(d => `${sx(d.pos).toFixed(1)},${sy(d.temp).toFixed(1)}`).join(" ");
+
+  return (
+    <svg width={W} height={H} style={{ display:"block" }}>
+      {/* 격자선 */}
+      {[0, 0.5, 1].map(f => (
+        <line key={f} x1={PAD.l} x2={W - PAD.r}
+          y1={PAD.t + iH * (1 - f)} y2={PAD.t + iH * (1 - f)}
+          stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+      ))}
+      {/* 선 그래프 */}
+      <polyline points={pts} fill="none" stroke="#60a5fa" strokeWidth={1.5} strokeLinejoin="round" />
+      {/* 축 레이블 */}
+      <text x={PAD.l - 4} y={PAD.t + 4} textAnchor="end" fontSize={9} fill="#7a8fa8">{yMax.toFixed(0)}</text>
+      <text x={PAD.l - 4} y={PAD.t + iH + 4} textAnchor="end" fontSize={9} fill="#7a8fa8">{yMin.toFixed(0)}</text>
+      <text x={PAD.l} y={H - 4} textAnchor="middle" fontSize={9} fill="#7a8fa8">{xMin.toFixed(1)}</text>
+      <text x={W - PAD.r} y={H - 4} textAnchor="middle" fontSize={9} fill="#7a8fa8">{xMax.toFixed(1)}</text>
+      <text x={(PAD.l + W - PAD.r) / 2} y={H - 4} textAnchor="middle" fontSize={9} fill="#7a8fa8">
+        {axis.toUpperCase()} (mm) →
+      </text>
+      <text x={8} y={(PAD.t + PAD.t + iH) / 2} textAnchor="middle" fontSize={9} fill="#7a8fa8"
+        transform={`rotate(-90 8 ${(PAD.t + PAD.t + iH) / 2})`}>°C</text>
+    </svg>
   );
 }
 
@@ -282,12 +353,14 @@ function GlCapture({ glRef }) {
 // ─── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 export default function ThermalAnalyzer({ onBack }) {
   // 파일 / 메시
-  const [status, setStatus]     = useState("idle");
-  const [meshData, setMeshData] = useState(null);
-  const [bbox, setBbox]         = useState(null);
-  const [errorMsg, setErrorMsg] = useState("");
-  const fileRef = useRef(null);
-  const glRef   = useRef(null);
+  const [status, setStatus]       = useState("idle");
+  const [meshData, setMeshData]   = useState(null);
+  const [bbox, setBbox]           = useState(null);
+  const [errorMsg, setErrorMsg]   = useState("");
+  const [solveProgress, setSolveProgress]   = useState(null); // {step, total}
+  const fileRef   = useRef(null);
+  const glRef     = useRef(null);
+  const workerRef = useRef(null);
 
   // 소재
   const [selMat, setSelMat]     = useState("sus304");
@@ -390,6 +463,13 @@ export default function ThermalAnalyzer({ onBack }) {
   const [playing, setPlaying]   = useState(false);
   const animRef = useRef(null);
 
+  // 툴팁
+  const [hoverInfo, setHoverInfo] = useState(null); // { x, y, temp }
+
+  // 단면 그래프
+  const [graphAxis, setGraphAxis] = useState("z");
+  const [showGraph, setShowGraph] = useState(false);
+
   useEffect(() => {
     if (!playing || !transResult) return;
     animRef.current = setInterval(() => {
@@ -411,12 +491,20 @@ export default function ThermalAnalyzer({ onBack }) {
     setBeamRadius(+(maxSpan * 0.15).toFixed(2));
   }, [bbox]);
 
-  // 현재 표시 온도 배열
+  // 현재 표시 온도 배열 — 듀얼 메시일 때 FEM 결과를 정밀 메시 노드에 매핑
   const displayTemps = useMemo(() => {
-    if (mode==="steady") return steadyT;
-    if (transResult)     return transResult.snapshots[frameIdx];
-    return null;
-  }, [mode, steadyT, transResult, frameIdx]);
+    let rawT = null;
+    if (mode === "steady") rawT = steadyT;
+    else if (transResult) rawT = transResult.snapshots[frameIdx];
+    if (!rawT) return null;
+    if (meshData?.fineToCoarseMap && meshData.isDual) {
+      const map = meshData.fineToCoarseMap;
+      const mapped = new Float64Array(map.length);
+      for (let i = 0; i < map.length; i++) mapped[i] = rawT[map[i]];
+      return mapped;
+    }
+    return rawT;
+  }, [mode, steadyT, transResult, frameIdx, meshData]);
 
   const exportCSV = useCallback(() => {
     if (!meshData || !displayTemps) return;
@@ -440,6 +528,60 @@ export default function ThermalAnalyzer({ onBack }) {
     a.click();
   }, []);
 
+  const exportReport = useCallback(() => {
+    if (!meshData || !displayTemps) return;
+    const N = meshData.nodes.length / 3;
+    const avg = displayTemps.reduce((s, v) => s + v, 0) / N;
+    const mat = MATERIALS.find(m => m.id === selMat);
+    const now = new Date().toLocaleString("ko-KR");
+    const lines = [
+      "═══════════════════════════════════════════",
+      "  PALAB 스튜디오 — 열해석 결과 보고서",
+      "═══════════════════════════════════════════",
+      `생성일시: ${now}`,
+      "",
+      "─── 해석 조건 ─────────────────────────────",
+      `해석 유형  : ${mode === "steady" ? "정상상태" : "과도 (Transient)"}`,
+      `소재       : ${mat?.name ?? selMat}`,
+      `열전도율 k : ${conductivity} W/m·K`,
+      `두께 t     : ${thickness} ${unitMM ? "mm" : "m"}`,
+      `내부발열 Q : ${heatSource} W/m³`,
+      `방사율 ε   : ${emissivity}`,
+      `환경 h     : ${envH} W/m²K`,
+      "",
+      "─── 빔 경로 열원 ──────────────────────────",
+      `활성화     : ${beamEnabled ? "ON" : "OFF"}`,
+      beamEnabled ? `열원       : ${beamWattsUnit === "kW" ? (beamWatts/1000).toFixed(1)+"kW" : beamWatts+"W"}` : "",
+      beamEnabled ? `반경       : ${beamRadius} mm` : "",
+      beamEnabled ? `방향       : ${beamDirPreset.toUpperCase()}축` : "",
+      "",
+      "─── 면 경계조건 ───────────────────────────",
+      ...bcs.map(b => `  ${bcLabel(b.boundary).padEnd(8)}: ${b.temp} °C`),
+      bcs.length === 0 ? "  (없음)" : "",
+      "",
+      "─── 해석 결과 ─────────────────────────────",
+      `최고 온도  : ${tMax.toFixed(2)} °C`,
+      `최저 온도  : ${tMin.toFixed(2)} °C`,
+      `평균 온도  : ${avg.toFixed(2)} °C`,
+      `온도 범위  : ${(tMax - tMin).toFixed(2)} °C`,
+      mat?.melt ? `용융점 대비: ${((tMax / mat.melt) * 100).toFixed(1)} % (용융점 ${mat.melt} °C)` : "",
+      tMax > (mat?.melt ?? Infinity) ? "⚠ 경고: 최고 온도가 용융점을 초과합니다!" : "",
+      "",
+      "─── 주의사항 ──────────────────────────────",
+      "• 본 결과는 초기 검토용 Shell FEM 해석입니다.",
+      "• 두께 방향 온도 구배 미반영 (Shell FEM 한계)",
+      "• 최종 설계 검증은 상용 FEM (ANSYS 등) 필요",
+      "═══════════════════════════════════════════",
+    ].filter(l => l !== undefined);
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "thermal_report.txt";
+    a.click();
+  }, [meshData, displayTemps, selMat, conductivity, heatSource, thickness, unitMM,
+      emissivity, envH, beamEnabled, beamWatts, beamWattsUnit, beamRadius, beamDirPreset,
+      bcs, tMin, tMax, mode]);
+
   // 로그 스케일: 온도 범위가 100°C 초과 시 자동 전환 (극단적 열점 가시화)
   const useLogScale = displayTemps != null && (tMax - tMin) > 100;
 
@@ -460,13 +602,19 @@ export default function ThermalAnalyzer({ onBack }) {
       let mesh;
       if (file.name.toLowerCase().match(/\.step$|\.stp$/)) {
         setStatus("loading-occt");
-        const { parseSTEP } = await import("./thermal/stepParser");
+        const { parseSTEP, buildNearestMap } = await import("./thermal/stepParser");
         mesh = await parseSTEP(await file.arrayBuffer());
+        if (mesh.isDual) {
+          // 정밀 메시 bbox로 최근접 매핑 미리 계산
+          const bb0 = meshBBox(mesh.nodes);
+          mesh = { ...mesh, fineToCoarseMap: buildNearestMap(mesh.femNodes, mesh.nodes, bb0) };
+        }
       } else {
-        mesh = parseSTL(await file.arrayBuffer());
+        const raw = parseSTL(await file.arrayBuffer());
+        mesh = { ...raw, femNodes: raw.nodes, femElements: raw.elements, isDual: false, fineToCoarseMap: null };
       }
-      setMeshData(mesh);
       const bb = meshBBox(mesh.nodes);
+      setMeshData(mesh);
       setBbox(bb);
       // 두께 자동 제안: bbox 최소 치수
       const spans = [bb.x[1]-bb.x[0], bb.y[1]-bb.y[0], bb.z[1]-bb.z[0]];
@@ -478,70 +626,142 @@ export default function ThermalAnalyzer({ onBack }) {
     e.target.value = "";
   }, []);
 
-  // ─── 해석 실행 ──────────────────────────────────────────────────────────────
+  // ─── 해석 실행 (Web Worker) ─────────────────────────────────────────────────
   const handleSolve = useCallback(() => {
     if (!meshData) return;
-    // 열원이 전혀 없으면 결과가 초기온도로 균일해진다는 것을 미리 알림
     const noHeatSource = +heatSource === 0 && pointBCs.length === 0 && !beamEnabled;
     if (noHeatSource && bcs.length === 0) {
       setErrorMsg("⚠️ 열원이 없습니다. 빔 열원을 ON으로 켜거나, 클릭 열원을 추가하거나, 면 온도 경계조건을 설정하세요.");
       return;
     }
-    setStatus("solving"); setErrorMsg(""); setSteadyT(null); setTrans(null);
-    setTimeout(() => {
-      try {
-        const thicknessM = (unitMM ? +thickness * 1e-3 : +thickness);
-        const coordScale = unitMM ? 1e-3 : 1.0;
-        // 빔 경로 열원: 활성화 시 자동 계산·적용
-        let beamAsPointBC = [];
-        let extraDirichlet = new Map(); // 빔 온도 모드용 추가 Dirichlet BC
-        if (beamEnabled) {
-          const bDir = beamDirPreset === "x" ? {x:1,y:0,z:0}
-                     : beamDirPreset === "y" ? {x:0,y:1,z:0}
-                     : beamDirPreset === "z" ? {x:0,y:0,z:1}
-                     : {x:+beamDirX, y:+beamDirY, z:+beamDirZ};
-          const bOrigin = {x:+beamOriginX, y:+beamOriginY, z:+beamOriginZ};
-          const bNodes = findBeamNodes(meshData.nodes, bOrigin, bDir, +beamRadius);
-          setBeamNodeCount(bNodes.length);
-          if (bNodes.length === 0) {
-            const minD = minBeamDist(meshData.nodes, bOrigin, bDir);
-            const minR = isFinite(minD) ? (minD * 1.1).toFixed(3) : null;
-            setStatus("error");
-            setErrorMsg(`⚠️ 빔 경로에 노드 없음 — 반경을 최소 ${minR ?? "?"}mm 이상으로 늘리거나 "최소 반경 자동" 버튼을 클릭하세요.`);
-            return;
+
+    // 빔 경로 전처리 (메인 스레드에서만 가능)
+    let beamAsPointBC = [];
+    let extraDirichlet = new Map();
+    if (beamEnabled) {
+      const bDir = beamDirPreset === "x" ? {x:1,y:0,z:0}
+                 : beamDirPreset === "y" ? {x:0,y:1,z:0}
+                 : beamDirPreset === "z" ? {x:0,y:0,z:1}
+                 : {x:+beamDirX, y:+beamDirY, z:+beamDirZ};
+      const bOrigin = {x:+beamOriginX, y:+beamOriginY, z:+beamOriginZ};
+      const femN = meshData.femNodes ?? meshData.nodes;
+      const bNodes = findBeamNodes(femN, bOrigin, bDir, +beamRadius);
+      setBeamNodeCount(bNodes.length);
+      if (bNodes.length === 0) {
+        const minD = minBeamDist(femN, bOrigin, bDir);
+        const minR = isFinite(minD) ? (minD * 1.1).toFixed(3) : null;
+        setStatus("error");
+        setErrorMsg(`⚠️ 빔 경로에 노드 없음 — 반경을 최소 ${minR ?? "?"}mm 이상으로 늘리거나 "최소 반경 자동" 버튼을 클릭하세요.`);
+        return;
+      }
+      if (beamInputMode === "flux" && +beamWatts > 0) {
+        beamAsPointBC = [{id:"beam", nodeIndices:bNodes, watts:+beamWatts}];
+      } else if (beamInputMode === "temp") {
+        bNodes.forEach(ni => extraDirichlet.set(ni, +beamTemp));
+      }
+    } else {
+      setBeamNodeCount(null);
+    }
+
+    const thicknessM = unitMM ? +thickness * 1e-3 : +thickness;
+    const coordScale = unitMM ? 1e-3 : 1.0;
+    const common = {
+      conductivity:+conductivity, heatSource:+heatSource, bcs,
+      pointBCs: [...pointBCs, ...beamAsPointBC],
+      ambientTemp:+initTemp, thicknessM, coordScale, envH:+envH,
+      extraDirichlet, emissivity:+emissivity,
+    };
+
+    // 기존 워커 종료
+    // 노드 수 과다 경고 (FEM 연립방정식 크기 = FEM 노드 수)
+    const femNodes = meshData.femNodes ?? meshData.nodes;
+    const femElements = meshData.femElements ?? meshData.elements;
+    const N = femNodes.length / 3;
+    if (N > 60000) {
+      setErrorMsg(`⚠️ FEM 노드 ${N.toLocaleString()}개는 브라우저 FEM 한계를 초과합니다.\nSTL로 변환하거나 단품으로 나눠서 업로드해 주세요.`);
+      return;
+    }
+    if (N > 20000) {
+      setErrorMsg(`⚠️ FEM 노드 ${N.toLocaleString()}개 — 해석에 수 분이 걸릴 수 있습니다.`);
+      // 경고만, 해석은 계속
+    }
+
+    if (workerRef.current) { workerRef.current.terminate(); workerRef.current = null; }
+    setStatus("solving"); setSteadyT(null); setTrans(null); setSolveProgress(null);
+
+    const totalSteps = mode === "transient" ? +numSteps : null;
+    const transientParams = mode === "transient"
+      ? { ...common, density:+density, specificHeat:+specificHeat,
+          initialTemp:+initTemp, totalTime:+totalTime, numSteps:+numSteps }
+      : null;
+
+    // ── 동기 폴백 함수 (Worker 실패 시 사용) ────────────────────────────────
+    const runSync = () => {
+      setTimeout(() => {
+        try {
+          if (mode === "steady") {
+            const T = solveHeat(femNodes, femElements, bbox, common);
+            setSteadyT(T);
+            let mn = T[0], mx = T[0];
+            for (let i = 1; i < T.length; i++) { if (T[i]<mn) mn=T[i]; if (T[i]>mx) mx=T[i]; }
+            setTMin(mn); setTMax(mx);
+          } else {
+            const r = solveTransient(femNodes, femElements, bbox, {
+              ...transientParams,
+              onStep: (step) => setSolveProgress({ step: step+1, total: totalSteps }),
+            });
+            setTrans(r); setFrameIdx(0); setTMin(r.tMin); setTMax(r.tMax);
           }
-          if (beamInputMode === "flux" && +beamWatts > 0) {
-            beamAsPointBC = [{id:"beam", nodeIndices:bNodes, watts:+beamWatts}];
-          } else if (beamInputMode === "temp") {
-            // Dirichlet: 빔 경로 노드를 지정 온도로 고정
-            bNodes.forEach(ni => extraDirichlet.set(ni, +beamTemp));
-          }
-        } else {
-          setBeamNodeCount(null);
+          setStatus("done"); setSolveProgress(null);
+        } catch(err) {
+          setErrorMsg(String(err)); setStatus("error"); setSolveProgress(null);
         }
-        const allPointBCs = [...pointBCs, ...beamAsPointBC];
-        const common = {
-          conductivity:+conductivity, heatSource:+heatSource, bcs, pointBCs: allPointBCs,
-          ambientTemp:+initTemp, thicknessM, coordScale, envH: +envH,
-          extraDirichlet,
-          emissivity: +emissivity,
-        };
-        if (mode==="steady") {
-          const T = solveHeat(meshData.nodes, meshData.elements, bbox, common);
+      }, 30);
+    };
+
+    // ── Web Worker 시도 ───────────────────────────────────────────────────────
+    let worker;
+    try {
+      worker = new Worker(
+        new URL('./thermal/femWorker.js', import.meta.url), { type: 'module' }
+      );
+    } catch {
+      runSync(); return;
+    }
+    workerRef.current = worker;
+
+    worker.onmessage = ({ data }) => {
+      if (data.type === 'step') {
+        setSolveProgress({ step: data.step + 1, total: totalSteps });
+      } else if (data.type === 'done') {
+        if (mode === 'steady') {
+          const T = data.T;
           setSteadyT(T);
-          setTMin(Math.min(...T)); setTMax(Math.max(...T));
+          let mn = T[0], mx = T[0];
+          for (let i = 1; i < T.length; i++) { if (T[i]<mn) mn=T[i]; if (T[i]>mx) mx=T[i]; }
+          setTMin(mn); setTMax(mx);
         } else {
-          const r = solveTransient(meshData.nodes, meshData.elements, bbox, {
-            ...common, density:+density, specificHeat:+specificHeat,
-            initialTemp:+initTemp, totalTime:+totalTime, numSteps:+numSteps,
-          });
+          const r = data.result;
           setTrans(r); setFrameIdx(0); setTMin(r.tMin); setTMax(r.tMax);
         }
-        setStatus("done");
-      } catch(err) {
-        setErrorMsg(String(err)); setStatus("error");
+        setStatus("done"); setSolveProgress(null);
+        workerRef.current = null;
+      } else if (data.type === 'error') {
+        setErrorMsg(data.msg); setStatus("error"); setSolveProgress(null);
+        workerRef.current = null;
       }
-    }, 30);
+    };
+    worker.onerror = () => {
+      workerRef.current = null;
+      runSync();
+    };
+
+    // extraDirichlet(Map)은 structured clone 지원 — 직접 전달
+    const payload = {
+      type: mode, nodes: femNodes, elements: femElements, bbox,
+      params: transientParams ?? common,
+    };
+    worker.postMessage(payload);
   }, [meshData, bbox, conductivity, heatSource, bcs, pointBCs, beamEnabled, beamWatts, beamWattsUnit, beamInputMode, beamTemp, beamDirPreset, beamDirX, beamDirY, beamDirZ, beamOriginX, beamOriginY, beamOriginZ, beamRadius, mode, density, specificHeat, initTemp, totalTime, numSteps, unitMM, thickness, envH, emissivity]);
 
   const busy = ["parsing","loading-occt","solving"].includes(status);
@@ -551,7 +771,9 @@ export default function ThermalAnalyzer({ onBack }) {
   const statusLabel = {
     parsing: "STL 파싱 중…",
     "loading-occt": "STEP 엔진 로드 중…",
-    solving: mode==="transient" ? `과도해석 계산 중… (${numSteps}스텝)` : "정상상태 해석 중…",
+    solving: solveProgress
+      ? `계산 중… ${solveProgress.step}/${solveProgress.total} 스텝`
+      : (mode==="transient" ? `과도해석 계산 중… (${numSteps}스텝)` : "정상상태 해석 중…"),
   }[status] ?? null;
 
   return (
@@ -575,12 +797,19 @@ export default function ThermalAnalyzer({ onBack }) {
             <h3>1. 모델 파일 업로드</h3>
             <input ref={fileRef} type="file" accept=".stl,.step,.stp"
               style={{display:"none"}} onChange={handleFile} />
-            <button className="button" onClick={() => fileRef.current?.click()} disabled={busy}>
-              {statusLabel ?? "STL / STEP 선택"}
-            </button>
+            <div style={{display:"flex", gap:8, alignItems:"center", marginBottom:6}}>
+              <button className="button" style={{flex:1}} onClick={() => fileRef.current?.click()} disabled={busy}>
+                {statusLabel ?? "STL / STEP 선택"}
+              </button>
+            </div>
             {meshData && bbox && (
               <div className="th-info-box">
-                <p>노드: <strong>{nodeCount.toLocaleString()}</strong></p>
+                <p>표시 노드: <strong>{nodeCount.toLocaleString()}</strong></p>
+                {meshData.isDual && (
+                  <p>FEM 노드: <strong>{((meshData.femNodes?.length ?? 0)/3).toLocaleString()}</strong>
+                    <span style={{color:"#34d399", fontSize:11, marginLeft:4}}>자동 최적화</span>
+                  </p>
+                )}
                 <p>요소: <strong>{elemCount.toLocaleString()}</strong></p>
                 <p>X: {bbox.x[0].toFixed(2)} ~ {bbox.x[1].toFixed(2)}</p>
                 <p>Y: {bbox.y[0].toFixed(2)} ~ {bbox.y[1].toFixed(2)}</p>
@@ -756,7 +985,7 @@ export default function ThermalAnalyzer({ onBack }) {
                                : beamDirPreset === "z" ? {x:0,y:0,z:1}
                                : {x:+beamDirX, y:+beamDirY, z:+beamDirZ};
                     const bOrigin = {x:+beamOriginX, y:+beamOriginY, z:+beamOriginZ};
-                    const minD = minBeamDist(meshData.nodes, bOrigin, bDir);
+                    const minD = minBeamDist(meshData.femNodes ?? meshData.nodes, bOrigin, bDir);
                     if (isFinite(minD)) setBeamRadius(+(minD * 1.1).toFixed(3));
                   }}>최소 반경 자동</button>
               </div>
@@ -919,31 +1148,6 @@ export default function ThermalAnalyzer({ onBack }) {
             <button className="ghost-button th-add" onClick={addBC}>+ 면 추가</button>
           </section>
 
-          {/* 해석 정밀도 안내 */}
-          <section className="th-section" style={{
-            gridColumn:"1/-1",
-            borderColor:"rgba(251,191,36,0.25)",
-            background:"rgba(251,191,36,0.04)"
-          }}>
-            <h3 style={{color:"#d97706", display:"flex", alignItems:"center", gap:6}}>
-              <span>⚠</span> 해석 정밀도 안내
-            </h3>
-            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 20px", marginTop:4}}>
-              {[
-                ["적용 범위", "초기 검토·파라미터 스터디 전용"],
-                ["Shell FEM 한계", "두께 방향 온도 구배 미반영"],
-                ["복사 뷰 팩터", "전 표면→환경 방사 가정 (부품 간 차폐 미고려)"],
-                ["물성 온도 의존성", "k·ε 고정값 사용 (온도 따른 변화 미반영)"],
-                ["조립품 두께", "단일 t값으로 근사 (파이프/플랜지 혼용 시 부정확)"],
-                ["최종 설계 검증", "ANSYS 등 상용 FEM 별도 검토 필요"],
-              ].map(([k,v]) => (
-                <div key={k} style={{fontSize:12, lineHeight:1.5}}>
-                  <span style={{color:"#92400e", fontWeight:500}}>{k}:</span>
-                  <span style={{color:"#a16207", marginLeft:4}}>{v}</span>
-                </div>
-              ))}
-            </div>
-          </section>
         </aside>
 
         {/* ── 3D 뷰포트 ── */}
@@ -964,6 +1168,7 @@ export default function ThermalAnalyzer({ onBack }) {
                   tMin={tMin} tMax={tMax}
                   clickMode={clickMode || beamClickMode}
                   useLog={useLogScale}
+                  onHover={setHoverInfo}
                   onMeshClick={(pt) => {
                     if (beamClickMode) {
                       // 축 정렬 빔: 빔 축 방향 좌표만 클릭에서, 수직 좌표는 bbox 중심으로 스냅
@@ -1014,26 +1219,71 @@ export default function ThermalAnalyzer({ onBack }) {
                   position:"absolute", top:10, right:10,
                   display:"flex", gap:6, zIndex:20
                 }}>
-                  <button
-                    onClick={exportCSV}
-                    style={{
-                      background:"rgba(13,17,23,0.85)", border:"1px solid rgba(255,255,255,0.15)",
-                      color:"#94a3b8", borderRadius:6, padding:"5px 10px",
-                      fontSize:12, cursor:"pointer", backdropFilter:"blur(6px)"
-                    }}
-                    title="노드별 온도 CSV 다운로드">
-                    ⬇ CSV
-                  </button>
-                  <button
-                    onClick={exportPNG}
-                    style={{
-                      background:"rgba(13,17,23,0.85)", border:"1px solid rgba(255,255,255,0.15)",
-                      color:"#94a3b8", borderRadius:6, padding:"5px 10px",
-                      fontSize:12, cursor:"pointer", backdropFilter:"blur(6px)"
-                    }}
-                    title="3D 뷰 PNG 다운로드">
-                    ⬇ PNG
-                  </button>
+                  {[
+                    { label:"⬇ CSV",    fn: exportCSV,    title:"노드별 온도 CSV 다운로드" },
+                    { label:"⬇ PNG",    fn: exportPNG,    title:"3D 뷰 PNG 다운로드" },
+                    { label:"📋 보고서", fn: exportReport, title:"해석 결과 보고서 TXT 다운로드" },
+                  ].map(({ label, fn, title }) => (
+                    <button key={label} onClick={fn} title={title}
+                      style={{
+                        background:"rgba(13,17,23,0.85)", border:"1px solid rgba(255,255,255,0.15)",
+                        color:"#94a3b8", borderRadius:6, padding:"5px 10px",
+                        fontSize:12, cursor:"pointer", backdropFilter:"blur(6px)"
+                      }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* 단면 온도 그래프 토글 */}
+              {displayTemps && (
+                <div style={{
+                  position:"absolute", bottom:8, right:8,
+                  background:"rgba(13,17,23,0.88)", border:"1px solid rgba(255,255,255,0.12)",
+                  borderRadius:8, padding:"6px 10px", zIndex:20, backdropFilter:"blur(6px)"
+                }}>
+                  <div style={{display:"flex", alignItems:"center", gap:8, marginBottom: showGraph ? 6 : 0}}>
+                    <span style={{fontSize:11, color:"#7a8fa8"}}>단면 그래프</span>
+                    {["x","y","z"].map(ax => (
+                      <button key={ax}
+                        onClick={() => { setGraphAxis(ax); setShowGraph(true); }}
+                        style={{
+                          background: showGraph && graphAxis===ax ? "rgba(96,165,250,0.2)" : "transparent",
+                          border: `1px solid ${showGraph && graphAxis===ax ? "#60a5fa" : "rgba(255,255,255,0.15)"}`,
+                          color: showGraph && graphAxis===ax ? "#60a5fa" : "#94a3b8",
+                          borderRadius:4, padding:"2px 7px", fontSize:11, cursor:"pointer"
+                        }}>
+                        {ax.toUpperCase()}
+                      </button>
+                    ))}
+                    {showGraph && (
+                      <button onClick={() => setShowGraph(false)}
+                        style={{background:"transparent", border:"none", color:"#7a8fa8",
+                          fontSize:12, cursor:"pointer", padding:"0 2px"}}>✕</button>
+                    )}
+                  </div>
+                  {showGraph && (
+                    <CrossSectionGraph
+                      nodes={meshData.nodes}
+                      temperatures={displayTemps}
+                      axis={graphAxis}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* 호버 툴팁 */}
+              {hoverInfo && (
+                <div style={{
+                  position:"fixed", left: hoverInfo.x + 14, top: hoverInfo.y - 28,
+                  background:"rgba(13,17,23,0.92)", border:"1px solid rgba(255,255,255,0.18)",
+                  borderRadius:6, padding:"4px 10px",
+                  fontSize:12, color:"#f1f5f9",
+                  pointerEvents:"none", zIndex:50,
+                  backdropFilter:"blur(8px)"
+                }}>
+                  {hoverInfo.temp.toFixed(1)} °C
                 </div>
               )}
               {/* 결과 오버레이 — 뷰포트 상단 */}
@@ -1091,20 +1341,76 @@ export default function ThermalAnalyzer({ onBack }) {
             </>
           ) : (
             <div className="th-empty th-empty--guide">
-              <div className="th-guide-card">
-                <h3>열해석 사용 가이드</h3>
-                <ul>
-                  <li><strong>1. 모델 업로드</strong> — STL 또는 STEP 파일을 올리면 3D 모델이 여기에 표시됩니다.</li>
-                  <li><strong>2. 해석 유형</strong> — 정상상태(최종 온도) 또는 과도(시간별 변화) 중 선택합니다.</li>
-                  <li><strong>3. 소재·경계조건</strong> — 소재를 고르고 냉각면·열원면 온도를 지정합니다.</li>
-                  <li><strong>4. 해석 실행</strong> — 버튼을 누르면 온도 분포가 3D로 시각화됩니다.</li>
-                </ul>
-                {statusLabel && <p className="th-guide-status">{statusLabel}</p>}
-              </div>
+              {status === "error" && errorMsg ? (
+                <div style={{
+                  background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.5)",
+                  borderRadius:12, padding:"20px 24px", width:"100%", boxSizing:"border-box"
+                }}>
+                  <div style={{color:"#f87171", fontWeight:700, fontSize:16, marginBottom:8}}>⚠ 파일 로드 실패</div>
+                  <div style={{color:"#fca5a5", fontSize:14, marginBottom:14}}>{errorMsg}</div>
+                  <div style={{color:"#94a3b8", fontSize:13}}>
+                    <strong>STEP 파일 용량이 큰 경우 권장 조치:</strong><br/>
+                    · CAD 툴에서 <strong>STL로 내보내기</strong> (메시 정밀도 중간 설정)<br/>
+                    · STEP 조립체는 단품 부품만 추출해서 사용<br/>
+                    · Fusion 360 / SolidWorks에서 "단순화 저장"으로 내보내기
+                  </div>
+                </div>
+              ) : (
+                <div className="th-guide-card">
+                  <h3>열해석 사용 가이드</h3>
+                  <ul>
+                    <li><strong>1. 모델 업로드</strong> — STL 또는 STEP 파일을 올리면 3D 모델이 여기에 표시됩니다.</li>
+                    <li><strong>2. 해석 유형</strong> — 정상상태(최종 온도) 또는 과도(시간별 변화) 중 선택합니다.</li>
+                    <li><strong>3. 소재·경계조건</strong> — 소재를 고르고 냉각면·열원면 온도를 지정합니다.</li>
+                    <li><strong>4. 해석 실행</strong> — 버튼을 누르면 온도 분포가 3D로 시각화됩니다.</li>
+                  </ul>
+                  {statusLabel && <p className="th-guide-status">{statusLabel}</p>}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* 해석 정밀도 안내 — th-layout 아래 전체 폭 */}
+      {!meshData && (
+        <div style={{
+          background:"rgba(251,191,36,0.07)",
+          borderTop:"2px solid rgba(251,191,36,0.4)",
+          padding:"28px 48px",
+          boxSizing:"border-box"
+        }}>
+          <h4 style={{
+            color:"#f59e0b", margin:"0 0 20px 0",
+            fontSize:22, display:"flex", alignItems:"center", gap:10, fontWeight:700
+          }}>
+            <span style={{fontSize:24}}>⚠</span> 해석 정밀도 안내
+          </h4>
+          <div style={{
+            display:"grid",
+            gridTemplateColumns:"repeat(3, 1fr)",
+            gap:"12px 32px"
+          }}>
+            {[
+              ["적용 범위",      "초기 검토·파라미터 스터디 전용. 제품 최종 설계에는 상용 FEM을 사용하세요."],
+              ["Shell FEM 한계", "두께 방향(법선) 온도 구배를 계산하지 않습니다."],
+              ["복사 뷰 팩터",   "전 표면이 환경으로 방사한다고 가정합니다 (부품 간 차폐 미고려)."],
+              ["물성 온도 의존성","k·ε를 고정값으로 사용합니다 (온도에 따른 변화 미반영)."],
+              ["조립품 두께",    "단일 t값으로 근사합니다 (파이프·플랜지 혼용 시 부정확)."],
+              ["최종 설계 검증", "ANSYS·Abaqus 등 상용 FEM으로 반드시 재검증하세요."],
+            ].map(([k, v]) => (
+              <div key={k} style={{
+                background:"rgba(251,191,36,0.05)",
+                border:"1px solid rgba(251,191,36,0.2)",
+                borderRadius:10, padding:"14px 18px"
+              }}>
+                <div style={{color:"#f59e0b", fontWeight:700, fontSize:16, marginBottom:6}}>{k}</div>
+                <div style={{color:"#ca8a04", fontSize:15, lineHeight:1.6}}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

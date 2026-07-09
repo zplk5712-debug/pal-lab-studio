@@ -85,6 +85,9 @@ const SimulatorResultPanel = memo(function SimulatorResultPanel({
                 {product.tradeoffNote && (
                   <p className="recommend-item__tradeoff">{product.tradeoffNote}</p>
                 )}
+                {product.notes && !product.isPlaceholder && (
+                  <small className="recommend-item__notes">{product.notes}</small>
+                )}
               </article>
             ))}
           </div>
@@ -136,6 +139,11 @@ const SimulatorResultPanel = memo(function SimulatorResultPanel({
                 {item.url && (
                   <a className="package-card__site-btn" href={item.url} target="_blank" rel="noreferrer">
                     제품 사이트 ↗
+                  </a>
+                )}
+                {item.alternativeUrl && (
+                  <a className="package-card__site-btn package-card__site-btn--alt" href={item.alternativeUrl} target="_blank" rel="noreferrer">
+                    {item.alternativeLabel ?? "대체 구매처 ↗"}
                   </a>
                 )}
               </article>

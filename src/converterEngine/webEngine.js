@@ -108,6 +108,10 @@ async function runConvertJob({ jobId, conversionType, items, outputTarget, optio
       }
 
       emitProgress({ jobId, totalFiles: items.length, completedFiles: i + 1, currentFileName: fileName, currentFilePercent: 100 });
+
+      // 브라우저 메인 스레드에서 처리하므로, 파일 사이사이에 렌더링/진행률 업데이트가
+      // 반영될 수 있도록 한 프레임 양보한다 (버벅임 완화).
+      await new Promise((resolve) => requestAnimationFrame(resolve));
     }
 
     return results;
@@ -121,26 +125,26 @@ async function previewImage(ref) {
   return URL.createObjectURL(blobLike);
 }
 
-async function previewAscii(ref) {
+async function previewAscii(ref, options = {}) {
   const blobLike = getBlobLike(ref);
   const bytes = new Uint8Array(await blobLike.arrayBuffer());
-  const text = decodeBytes(bytes);
-  const { metadata, columns, rowCount } = parseAsciiDataText(text);
+  const text = decodeBytes(bytes, options.encoding);
+  const { metadata, columns, rowCount } = parseAsciiDataText(text, options);
   const maxPoints = 500;
   const step = Math.max(1, Math.ceil(rowCount / maxPoints));
   const sampledColumns = columns.map((col) => col.filter((_, i) => i % step === 0));
   return { metadata, columns: sampledColumns, rowCount };
 }
 
-async function previewTable(ref) {
+async function previewTable(ref, options = {}) {
   const blobLike = getBlobLike(ref);
   const name = getRefName(ref);
   const maxRows = 15;
 
   if (getExtension(name) === "csv") {
     const bytes = new Uint8Array(await blobLike.arrayBuffer());
-    const text = decodeBytes(bytes);
-    const delimiter = detectCsvDelimiter(text);
+    const text = decodeBytes(bytes, options.encoding);
+    const delimiter = detectCsvDelimiter(text, options.delimiter);
     return parseCsvText(text, delimiter).slice(0, maxRows);
   }
 

@@ -121,6 +121,24 @@ export const BALL_SCREW_FIELDS = [
   "note",
 ];
 
+export const ELECTRIC_ACTUATOR_FIELDS = [
+  "id",
+  "manufacturer",
+  "actuatorType",
+  "series",
+  "model",
+  "strokeRange_mm",
+  "maxSpeed_mm_s",
+  "maxThrust_N",
+  "repeatability_mm",
+  "driveMethod",
+  "motorIncluded",
+  "weight_kg",
+  "application",
+  "catalogUrl",
+  "note",
+];
+
 export const VACUUM_PUMP_FIELDS = [
   "id",
   "manufacturer",
@@ -198,6 +216,7 @@ export const VACUUM_REQUIRED_FIELDS = ["id", "manufacturer", "partType", "model"
 export const MOTOR_REQUIRED_FIELDS = ["id", "manufacturer", "motorType", "model"];
 export const REDUCER_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
 export const BALL_SCREW_REQUIRED_FIELDS = ["id", "manufacturer", "series", "model"];
+export const ELECTRIC_ACTUATOR_REQUIRED_FIELDS = ["id", "manufacturer", "actuatorType", "model"];
 export const VACUUM_PUMP_REQUIRED_FIELDS = ["id", "manufacturer", "pumpType", "model"];
 export const VACUUM_VALVE_REQUIRED_FIELDS = ["id", "manufacturer", "valveType", "model"];
 export const VACUUM_MOTION_REQUIRED_FIELDS = ["id", "manufacturer", "motionType", "model"];
@@ -259,6 +278,14 @@ export const BALL_SCREW_NUMERIC_FIELDS = [
   "screwLength_mm",
 ];
 
+export const ELECTRIC_ACTUATOR_NUMERIC_FIELDS = [
+  "strokeRange_mm",
+  "maxSpeed_mm_s",
+  "maxThrust_N",
+  "repeatability_mm",
+  "weight_kg",
+];
+
 export const VACUUM_PUMP_NUMERIC_FIELDS = [
   "pumpingSpeed_Ls",
   "ultimatePressure_mbar",
@@ -300,6 +327,7 @@ export const LM_GUIDE_MANUFACTURERS = [
   "NSK",
   "PMI",
   "Bosch Rexroth",
+  "MISUMI",
 ];
 
 export const ENCODER_MANUFACTURERS = [
@@ -338,6 +366,7 @@ export const MOTOR_MANUFACTURERS = [
   "Yaskawa",
   "Panasonic",
   "Faulhaber",
+  "MISUMI",
 ];
 
 export const MOTOR_TYPES = [
@@ -364,6 +393,21 @@ export const BALL_SCREW_MANUFACTURERS = [
   "Bosch Rexroth",
   "Nook Industries",
   "MISUMI",
+];
+
+export const ELECTRIC_ACTUATOR_MANUFACTURERS = [
+  "Oriental Motor",
+  "SMC",
+  "IAI",
+  "THK",
+  "Parker",
+];
+
+export const ELECTRIC_ACTUATOR_TYPES = [
+  "볼스크류형 슬라이더",
+  "벨트구동형 슬라이더",
+  "로드형(실린더)",
+  "미니 슬라이드 테이블",
 ];
 
 export const VACUUM_PUMP_MANUFACTURERS = [
@@ -426,6 +470,7 @@ export const PRODUCT_DB_TABS = [
   { id: "motor", label: "모터 DB" },
   { id: "reducer", label: "감속기 DB" },
   { id: "ballScrew", label: "볼스크류 DB" },
+  { id: "electricActuator", label: "전동 액추에이터 DB" },
   { id: "lmGuide", label: "LM가이드 DB" },
   { id: "encoder", label: "엔코더 DB" },
   { id: "vacuum", label: "진공부품 DB" },
@@ -440,7 +485,7 @@ export const PRODUCT_DB_CATEGORIES = [
     id: "motion",
     label: "모션 구동계",
     description: "모션 설계 도우미가 추천하는 핵심 구동계 부품군",
-    tabs: ["motor", "reducer", "ballScrew", "lmGuide"],
+    tabs: ["motor", "reducer", "ballScrew", "electricActuator", "lmGuide"],
   },
   {
     id: "sensor",
@@ -507,6 +552,23 @@ export const PRODUCT_DB_CONFIG = {
     subCategories: ["C0", "C1", "C3", "C5", "C7", "C10"],
     compareField: "shaftDiameter_mm",
     compareLabel: "축 지름",
+  },
+  electricActuator: {
+    id: "electricActuator",
+    title: "전동 액추에이터 DB",
+    fields: ELECTRIC_ACTUATOR_FIELDS,
+    requiredFields: ELECTRIC_ACTUATOR_REQUIRED_FIELDS,
+    numericFields: ELECTRIC_ACTUATOR_NUMERIC_FIELDS,
+    manufacturers: ELECTRIC_ACTUATOR_MANUFACTURERS,
+    sampleFileName: "electric-actuator-sample",
+    detailTitle: "전동 액추에이터 상세",
+    searchPlaceholder: "시리즈 또는 모델명 검색",
+    keySpecs: ["actuatorType", "strokeRange_mm", "maxSpeed_mm_s", "maxThrust_N"],
+    subCategoryField: "actuatorType",
+    subCategoryLabel: "액추에이터 종류",
+    subCategories: ELECTRIC_ACTUATOR_TYPES,
+    compareField: "driveMethod",
+    compareLabel: "구동 방식",
   },
   lmGuide: {
     id: "lmGuide",
@@ -710,6 +772,24 @@ export const BALL_SCREW_SAMPLE_ROW = {
   note: "catalog_check_required",
 };
 
+export const ELECTRIC_ACTUATOR_SAMPLE_ROW = {
+  id: "actuator-oriental-eac-sample",
+  manufacturer: "Oriental Motor",
+  actuatorType: "로드형(실린더)",
+  series: "EAC",
+  model: "EAC4R (구성형 파트넘버)",
+  strokeRange_mm: 100,
+  maxSpeed_mm_s: "catalog_check_required",
+  maxThrust_N: "catalog_check_required",
+  repeatability_mm: "catalog_check_required",
+  driveMethod: "ball_screw",
+  motorIncluded: "yes_alphastep_az_series",
+  weight_kg: "catalog_check_required",
+  application: "general_purpose_electric_cylinder",
+  catalogUrl: "https://www.orientalmotor.com/",
+  note: "catalog_check_required",
+};
+
 export const VACUUM_SAMPLE_ROW = {
   id: "vac-mdc-cf275-304ss",
   manufacturer: "MDC Precision",
@@ -822,3 +902,120 @@ export const ENCODER_SAMPLE_ROW = {
   catalogUrl: "https://www.heidenhain.com/",
   note: "catalog_check_required",
 };
+
+export const FIELD_LABELS = {
+  id: "ID",
+  manufacturer: "제조사",
+  series: "시리즈",
+  model: "모델명",
+  material: "재질",
+  application: "용도",
+  catalogUrl: "카탈로그 링크",
+  note: "비고",
+  weight_kg: "중량 (kg)",
+  weight_g: "중량 (g)",
+
+  // 모터
+  motorType: "모터 종류",
+  ratedTorque_Ncm: "정격 토크 (N·cm)",
+  holdingTorque_Ncm: "정지 토크 (N·cm)",
+  ratedSpeed_rpm: "정격 속도 (rpm)",
+  ratedVoltage_V: "정격 전압 (V)",
+  ratedCurrent_A: "정격 전류 (A)",
+  stepAngle_deg: "스텝각 (°)",
+  frameSize_mm: "프레임 사이즈 (mm)",
+  shaftDiameter_mm: "축 지름 (mm)",
+  builtInEncoder: "내장 엔코더",
+
+  // 감속기
+  reducerType: "감속기 종류",
+  reductionRatio: "감속비",
+  ratedTorque_Nm: "정격 토크 (N·m)",
+  maxTorque_Nm: "최대 토크 (N·m)",
+  backlash_arcmin: "백래시 (arcmin)",
+  efficiency_pct: "효율 (%)",
+  inputShaftDiameter_mm: "입력축 지름 (mm)",
+  outputShaftDiameter_mm: "출력축 지름 (mm)",
+
+  // 볼스크류
+  lead_mm: "리드 (mm)",
+  accuracyGrade: "정밀 등급",
+  nutType: "너트 타입",
+  dynamicLoad_N: "동적 정격하중 (N)",
+  staticLoad_N: "정적 정격하중 (N)",
+  maxRotationSpeed_rpm: "최대 회전속도 (rpm)",
+  screwLength_mm: "스크류 길이 (mm)",
+
+  // 전동 액추에이터
+  actuatorType: "액추에이터 종류",
+  strokeRange_mm: "스트로크 (mm)",
+  maxSpeed_mm_s: "최대 속도 (mm/s)",
+  maxThrust_N: "최대 추력 (N)",
+  repeatability_mm: "반복 정밀도 (mm)",
+  driveMethod: "구동 방식",
+  motorIncluded: "모터 포함 여부",
+
+  // LM가이드
+  railSize: "레일 사이즈",
+  blockType: "블록 타입",
+  preloadGrade: "예압 등급",
+  momentMA_Nm: "모멘트 MA (N·m)",
+  momentMB_Nm: "모멘트 MB (N·m)",
+  momentMC_Nm: "모멘트 MC (N·m)",
+  maxSpeed_m_min: "최대 속도 (m/min)",
+  railLength_mm: "레일 길이 (mm)",
+
+  // 엔코더
+  encoderType: "엔코더 종류",
+  measurementType: "측정 방식",
+  resolution: "분해능",
+  accuracy: "정확도",
+  interfaceType: "인터페이스",
+  outputSignal: "출력 신호",
+  supplyVoltage: "공급 전압",
+  maxSpeed_rpm: "최대 속도 (rpm)",
+  protectionGrade: "보호 등급",
+  shaftType: "축 타입",
+  outerDiameter_mm: "외경 (mm)",
+  measuringLength_mm: "측정 길이 (mm)",
+
+  // 진공부품
+  partType: "부품 종류",
+  flangeStandard: "플랜지 규격",
+  flangeSize: "플랜지 사이즈",
+  sealType: "실 종류",
+  maxBakeoutTemp_C: "최대 베이크아웃 온도 (°C)",
+  leakRate_mbarLs: "누설률 (mbar·L/s)",
+  boltHoles: "볼트홀 수",
+  tubeOD_mm: "튜브 외경 (mm)",
+
+  // 진공펌프
+  pumpType: "펌프 종류",
+  pumpingSpeed_Ls: "배기속도 (L/s)",
+  ultimatePressure_mbar: "도달 진공도 (mbar)",
+  inletFlangeSize: "흡입 플랜지",
+  powerConsumption_W: "소비전력 (W)",
+  noiseLevel_dB: "소음 (dB)",
+  coolingType: "냉각 방식",
+  controllerIncluded: "컨트롤러 포함 여부",
+
+  // 진공밸브
+  valveType: "밸브 종류",
+  actuationType: "구동 방식",
+  orificeSize_mm: "오리피스 사이즈 (mm)",
+
+  // 진공모션
+  motionType: "모션 종류",
+  travelRange_mm: "이송 범위 (mm)",
+  rotationRange_deg: "회전 범위 (°)",
+  positioningAccuracy: "위치결정 정밀도",
+
+  // 진공 게이지
+  gaugeType: "게이지 종류",
+  measurementRange_mbar: "측정 범위 (mbar)",
+  controllerRequired: "컨트롤러 필요 여부",
+};
+
+export function getFieldLabel(field) {
+  return FIELD_LABELS[field] ?? field;
+}

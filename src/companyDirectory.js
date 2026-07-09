@@ -11,6 +11,7 @@ export const COMPANY_OPTIONS = [
   { value: "Siemens", label: "Siemens" },
   { value: "SEW-EURODRIVE", label: "SEW-EURODRIVE" },
   { value: "Kollmorgen", label: "Kollmorgen" },
+  { value: "MISUMI", label: "MISUMI" },
 ];
 
 export const WEB_SEARCH_PROVIDERS = [
@@ -68,6 +69,11 @@ export const WEB_SEARCH_PROVIDERS = [
     company: "Kollmorgen",
     domains: ["kollmorgen.com"],
     keyword: "Kollmorgen motor servo",
+  },
+  {
+    company: "MISUMI",
+    domains: ["misumi-ec.com"],
+    keyword: "MISUMI stepping motor LM guide ball screw linear actuator",
   },
 ];
 
@@ -159,5 +165,13 @@ export const COMPANY_SITE_LINKS = [
     title: "Kollmorgen 공식 사이트",
     description: "서보모터, 드라이브, AGV 모션 제품 검색용",
     href: "https://www.kollmorgen.com/",
+  },
+  {
+    id: "site-misumi",
+    company: "MISUMI",
+    type: "공식 사이트",
+    title: "MISUMI 공식 사이트 (misumi-ec.com)",
+    description: "LM가이드, 볼스크류, 스텝모터, 전동 실린더 등 표준 기계부품 검색용",
+    href: "https://kr.misumi-ec.com/",
   },
 ];

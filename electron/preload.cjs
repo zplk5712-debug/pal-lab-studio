@@ -33,8 +33,8 @@ contextBridge.exposeInMainWorld("converterApp", {
   saveProfile: (profile) => ipcRenderer.invoke("converter:save-profile", profile),
   deleteProfile: (profileId) => ipcRenderer.invoke("converter:delete-profile", profileId),
   previewImage: (filePath) => ipcRenderer.invoke("converter:preview-image", filePath),
-  previewAscii: (filePath) => ipcRenderer.invoke("converter:preview-ascii", filePath),
-  previewTable: (filePath) => ipcRenderer.invoke("converter:preview-table", filePath),
+  previewAscii: (filePath, options) => ipcRenderer.invoke("converter:preview-ascii", filePath, options),
+  previewTable: (filePath, options) => ipcRenderer.invoke("converter:preview-table", filePath, options),
   previewPdfBase64: (filePath) => ipcRenderer.invoke("converter:preview-pdf-base64", filePath),
   previewText: (filePath) => ipcRenderer.invoke("converter:preview-text", filePath),
   onProgress: (cb) => {

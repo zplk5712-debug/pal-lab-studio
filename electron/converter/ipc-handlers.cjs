@@ -82,7 +82,14 @@ function rowsToCsv(rows) {
   return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
 }
 
-function detectCsvDelimiter(text) {
+const DELIMITER_NAME_TO_CHAR = { comma: ",", semicolon: ";", tab: "\t" };
+
+// forcedDelimiterName을 지정하면("comma"/"semicolon"/"tab") 자동감지 없이 그 구분자를 바로 사용한다.
+function detectCsvDelimiter(text, forcedDelimiterName) {
+  if (forcedDelimiterName && forcedDelimiterName !== "auto" && DELIMITER_NAME_TO_CHAR[forcedDelimiterName]) {
+    return DELIMITER_NAME_TO_CHAR[forcedDelimiterName];
+  }
+
   const sampleLines = text.split(/\r\n|\n|\r/).filter((line) => line.trim() !== "").slice(0, 5);
   const candidates = [",", ";", "\t"];
   let best = { delimiter: ",", score: -1 };
@@ -100,11 +107,53 @@ function detectCsvDelimiter(text) {
   return best.delimiter;
 }
 
+// RFC4180 스타일 따옴표 필드("...")를 인식하는 CSV 파서 — 따옴표 안의 구분자/줄바꿈을 필드 값으로 취급한다.
 function parseCsvText(text, delimiter) {
-  return text
-    .split(/\r\n|\n|\r/)
-    .filter((line) => line.trim() !== "")
-    .map((line) => line.split(delimiter).map((cell) => cell.trim()));
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === delimiter) {
+      row.push(field);
+      field = "";
+    } else if (char === "\r") {
+      // \n에서 줄바꿈 처리하므로 무시
+    } else if (char === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += char;
+    }
+  }
+
+  if (field !== "" || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows.filter((r) => !(r.length === 1 && r[0] === ""));
 }
 
 // --- 변환 유형별 실제 처리 ---------------------------------------------
@@ -121,13 +170,38 @@ async function convertImageFormat(inputPath, outputPath, options) {
   await pipeline.toFormat(format, { quality: options.quality ?? 90 }).toFile(outputPath);
 }
 
-async function convertSingleImageToPdf(inputPath, outputPath) {
-  const pdfDoc = await PDFDocument.create();
+// 이미지 픽셀 수를 그대로 PDF 포인트로 쓰면 큰 사진이 비정상적으로 큰 페이지가 되므로,
+// A4 안에 비율을 유지한 채 맞춰 넣는다 (가로가 더 길면 가로 A4 사용).
+const A4_PORTRAIT = [595.28, 841.89];
+
+function fitImageToA4(imageWidth, imageHeight) {
+  const isLandscape = imageWidth > imageHeight;
+  const [pageWidth, pageHeight] = isLandscape ? [A4_PORTRAIT[1], A4_PORTRAIT[0]] : A4_PORTRAIT;
+  const scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
+  const drawWidth = imageWidth * scale;
+  const drawHeight = imageHeight * scale;
+  return {
+    pageWidth,
+    pageHeight,
+    drawWidth,
+    drawHeight,
+    x: (pageWidth - drawWidth) / 2,
+    y: (pageHeight - drawHeight) / 2,
+  };
+}
+
+async function embedImageAsFittedPage(pdfDoc, inputPath) {
   const bytes = await fsp.readFile(inputPath);
   const ext = path.extname(inputPath).toLowerCase();
   const image = ext === ".png" ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-  const page = pdfDoc.addPage([image.width, image.height]);
-  page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+  const layout = fitImageToA4(image.width, image.height);
+  const page = pdfDoc.addPage([layout.pageWidth, layout.pageHeight]);
+  page.drawImage(image, { x: layout.x, y: layout.y, width: layout.drawWidth, height: layout.drawHeight });
+}
+
+async function convertSingleImageToPdf(inputPath, outputPath) {
+  const pdfDoc = await PDFDocument.create();
+  await embedImageAsFittedPage(pdfDoc, inputPath);
   const pdfBytes = await pdfDoc.save();
   await fsp.writeFile(outputPath, pdfBytes);
 }
@@ -152,10 +226,10 @@ async function convertExcelToCsv(inputPath, commonBaseDir, outputRootDir) {
   return outputPaths;
 }
 
-async function convertCsvToExcel(inputPath, outputPath) {
+async function convertCsvToExcel(inputPath, outputPath, options = {}) {
   const buffer = await fsp.readFile(inputPath);
-  const text = decodeBuffer(buffer);
-  const delimiter = detectCsvDelimiter(text);
+  const text = decodeBuffer(buffer, options.encoding);
+  const delimiter = detectCsvDelimiter(text, options.delimiter);
   const rows = parseCsvText(text, delimiter);
 
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
@@ -164,11 +238,12 @@ async function convertCsvToExcel(inputPath, outputPath) {
   XLSX.writeFile(workbook, outputPath);
 }
 
-async function convertAsciiData(inputPath, outputPath, options) {
-  const { metadata, columns, rowCount } = await parseAsciiDataFile(inputPath);
+// 한 번 파싱한 ASCII 데이터를 지정된 형식(csv/xlsx/json) 하나로 직렬화해 저장한다.
+// 여러 형식을 동시에 뽑을 때 파일을 매번 다시 파싱하지 않도록 파싱과 직렬화를 분리했다.
+async function writeAsciiData(parsed, outputPath, targetFormat) {
+  const { metadata, columns, rowCount } = parsed;
   const columnLabels = columns.map((_, index) => `col${index + 1}`);
   const rows = Array.from({ length: rowCount }, (_, rowIndex) => columns.map((col) => col[rowIndex]));
-  const targetFormat = options.targetFormat || "csv";
 
   if (targetFormat === "json") {
     const payload = { metadata, columns: columnLabels, rows };
@@ -198,14 +273,19 @@ async function convertOneFile({ conversionType, inputPath, commonBaseDir, output
   const ext = path.extname(inputPath).toLowerCase();
 
   if (conversionType === "image-format") {
-    const outputPath = buildOutputPath({
-      inputPath,
-      commonBaseDir,
-      outputRootDir,
-      newExtension: `.${options.targetFormat}`,
-    });
-    await convertImageFormat(inputPath, outputPath, options);
-    return [outputPath];
+    const targetFormats = options.targetFormats?.length ? options.targetFormats : ["jpg"];
+    const outputPaths = [];
+    for (const targetFormat of targetFormats) {
+      const outputPath = buildOutputPath({
+        inputPath,
+        commonBaseDir,
+        outputRootDir,
+        newExtension: `.${targetFormat}`,
+      });
+      await convertImageFormat(inputPath, outputPath, options);
+      outputPaths.push(outputPath);
+    }
+    return outputPaths;
   }
 
   if (conversionType === "images-to-pdf") {
@@ -217,22 +297,27 @@ async function convertOneFile({ conversionType, inputPath, commonBaseDir, output
   if (conversionType === "excel-csv") {
     if (ext === ".csv") {
       const outputPath = buildOutputPath({ inputPath, commonBaseDir, outputRootDir, newExtension: ".xlsx" });
-      await convertCsvToExcel(inputPath, outputPath);
+      await convertCsvToExcel(inputPath, outputPath, options);
       return [outputPath];
     }
     return convertExcelToCsv(inputPath, commonBaseDir, outputRootDir);
   }
 
   if (conversionType === "ascii-data") {
-    const targetFormat = options.targetFormat || "csv";
-    const outputPath = buildOutputPath({
-      inputPath,
-      commonBaseDir,
-      outputRootDir,
-      newExtension: `.${targetFormat}`,
-    });
-    await convertAsciiData(inputPath, outputPath, options);
-    return [outputPath];
+    const targetFormats = options.targetFormats?.length ? options.targetFormats : ["csv"];
+    const parsed = await parseAsciiDataFile(inputPath, options);
+    const outputPaths = [];
+    for (const targetFormat of targetFormats) {
+      const outputPath = buildOutputPath({
+        inputPath,
+        commonBaseDir,
+        outputRootDir,
+        newExtension: `.${targetFormat}`,
+      });
+      await writeAsciiData(parsed, outputPath, targetFormat);
+      outputPaths.push(outputPath);
+    }
+    return outputPaths;
   }
 
   throw new Error(`알 수 없는 변환 유형: ${conversionType}`);
@@ -247,11 +332,7 @@ async function convertMergedImagesToPdf(filePaths, outputRootDir, onFileProgress
   for (let i = 0; i < sortedPaths.length; i += 1) {
     const inputPath = sortedPaths[i];
     try {
-      const bytes = await fsp.readFile(inputPath);
-      const ext = path.extname(inputPath).toLowerCase();
-      const image = ext === ".png" ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-      const page = pdfDoc.addPage([image.width, image.height]);
-      page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+      await embedImageAsFittedPage(pdfDoc, inputPath);
       results.push({ file: inputPath, success: true });
     } catch (error) {
       results.push({ file: inputPath, success: false, error: toFriendlyError(error) });
@@ -411,22 +492,22 @@ function registerConverterIpc(ipcMain, { app, dialog }) {
     return `data:image/png;base64,${buffer.toString("base64")}`;
   });
 
-  ipcMain.handle("converter:preview-ascii", async (_event, filePath) => {
-    const { metadata, columns, rowCount } = await parseAsciiDataFile(filePath);
+  ipcMain.handle("converter:preview-ascii", async (_event, filePath, options = {}) => {
+    const { metadata, columns, rowCount } = await parseAsciiDataFile(filePath, options);
     const maxPoints = 500;
     const step = Math.max(1, Math.ceil(rowCount / maxPoints));
     const sampledColumns = columns.map((col) => col.filter((_, i) => i % step === 0));
     return { metadata, columns: sampledColumns, rowCount };
   });
 
-  ipcMain.handle("converter:preview-table", async (_event, filePath) => {
+  ipcMain.handle("converter:preview-table", async (_event, filePath, options = {}) => {
     const ext = path.extname(filePath).toLowerCase();
     const maxRows = 15;
 
     if (ext === ".csv") {
       const buffer = await fsp.readFile(filePath);
-      const text = decodeBuffer(buffer);
-      const delimiter = detectCsvDelimiter(text);
+      const text = decodeBuffer(buffer, options.encoding);
+      const delimiter = detectCsvDelimiter(text, options.delimiter);
       return parseCsvText(text, delimiter).slice(0, maxRows);
     }
 

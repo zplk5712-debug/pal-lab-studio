@@ -631,6 +631,11 @@ export function tmpl_inventory(spec) {
 .modal-title{font-weight:700;font-size:1.1rem;margin-bottom:16px;}
 .form-row{margin-bottom:12px;}
 .form-row label{display:block;font-size:0.82rem;color:var(--muted);margin-bottom:4px;}
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--muted);}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(108,99,255,0.06);color:var(--text);}
+.map-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;align-items:center;}
+#previewTable th,#previewTable td{padding:6px 10px;border:1px solid var(--border);font-size:0.8rem;white-space:nowrap;}
+#previewTable th{background:var(--surface);font-weight:600;}
 </style></head><body>
 <div class="app-header"><div>
   <div class="app-title">🗃️ ${spec.name}</div>
@@ -663,6 +668,38 @@ export function tmpl_inventory(spec) {
     <thead><tr><th>시각</th><th>품목</th><th>구분</th><th>수량</th><th>잔여</th></tr></thead>
     <tbody id="logBody" style="max-height:200px"></tbody>
   </table>
+</div>
+
+<div class="card">
+  <div class="card-title">파일에서 가져오기</div>
+  <p style="font-size:0.85rem;color:var(--muted);margin-bottom:14px">Excel(.xlsx/.xls) 또는 CSV(.csv) 파일을 업로드하면 품목을 일괄 등록합니다.<br>한글(HWP) 파일은 "다른 이름으로 저장 → CSV" 후 업로드하세요.</p>
+  <div class="drop-zone" id="dropZone"
+       onclick="document.getElementById('fileInput').click()"
+       ondragover="event.preventDefault();this.classList.add('drag-over')"
+       ondragleave="this.classList.remove('drag-over')"
+       ondrop="event.preventDefault();this.classList.remove('drag-over');handleFile(event.dataTransfer.files[0])">
+    <div style="font-size:2rem;margin-bottom:8px">📂</div>
+    <div style="font-weight:600;margin-bottom:4px">파일을 드래그하거나 클릭해서 선택</div>
+    <div style="font-size:0.82rem">지원 형식: Excel (.xlsx, .xls) · CSV (.csv)</div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+  </div>
+  <div id="importPreview" style="display:none;margin-top:16px">
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px" id="importInfo"></p>
+    <div style="overflow-x:auto"><table id="previewTable"></table></div>
+  </div>
+</div>
+
+<!-- 열 매핑 모달 -->
+<div class="modal" id="mapModal">
+  <div class="modal-box" style="max-width:500px;width:95vw">
+    <div class="modal-title">열 매핑 설정</div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px">어떤 열이 어떤 항목에 해당하는지 선택해주세요 (* 필수)</p>
+    <div id="mapFields"></div>
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn btn-success" onclick="importMapped()">가져오기</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('mapModal').className='modal'">취소</button>
+    </div>
+  </div>
 </div>
 
 <!-- 추가/수정 모달 -->
@@ -766,6 +803,111 @@ function csvExport(){
   items.forEach(function(it){rows.push(it.name+','+it.cat+','+it.qty+','+it.min+','+it.unit);});
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(rows.join('\\n'));
   a.download='재고목록.csv';a.click();
+}
+// ── 파일 가져오기 ──────────────────────────────────────────────
+var importedRows=[], importedHeaders=[];
+var MAP_FIELDS=[
+  {key:'name',label:'품목명',required:true},
+  {key:'cat', label:'분류',  required:false},
+  {key:'qty', label:'현재 재고',required:false},
+  {key:'min', label:'최소 재고',required:false},
+  {key:'unit',label:'단위',  required:false}
+];
+var MAP_KEYWORDS={name:['품목','이름','name','품명','제품','부품'],cat:['분류','카테','cat','종류','구분'],qty:['재고','수량','qty','quantity','현재'],min:['최소','min','기준'],unit:['단위','unit']};
+
+function handleFile(file){
+  if(!file)return;
+  var n=file.name.toLowerCase();
+  if(n.endsWith('.csv')){
+    var r=new FileReader();r.onload=function(e){parseCSVData(e.target.result);};r.readAsText(file,'UTF-8');
+  } else if(n.endsWith('.xlsx')||n.endsWith('.xls')){
+    loadXLSX(function(){
+      var r=new FileReader();r.onload=function(e){
+        var wb=XLSX.read(e.target.result,{type:'array'});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        showImport(XLSX.utils.sheet_to_json(ws,{header:1}));
+      };r.readAsArrayBuffer(file);
+    });
+  } else if(n.endsWith('.hwp')||n.endsWith('.hwpx')){
+    alert('한글(.hwp) 파일은 브라우저에서 직접 읽을 수 없습니다.\\n[파일 → 다른 이름으로 저장 → CSV] 후 업로드하세요.');
+  } else {
+    alert('지원하지 않는 형식입니다.\\nExcel(.xlsx/.xls) 또는 CSV(.csv) 파일을 사용해주세요.');
+  }
+}
+function loadXLSX(cb){
+  if(window.XLSX){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+  s.onload=cb;s.onerror=function(){alert('SheetJS 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.');};
+  document.head.appendChild(s);
+}
+function parseCSVData(text){
+  var lines=text.trim().split('\\n').map(function(l){
+    return l.split(',').map(function(c){return c.trim().replace(/^"|"$/g,'');});
+  });
+  showImport(lines);
+}
+function showImport(data){
+  if(!data||data.length<2){alert('데이터가 2행 이상이어야 합니다.');return;}
+  importedHeaders=data[0].map(function(h){return String(h||'');});
+  importedRows=data.slice(1).filter(function(r){return r.some(function(c){return c!=null&&String(c).trim();});});
+  var info=document.getElementById('importInfo');
+  info.textContent='📊 '+importedRows.length+'행 · '+importedHeaders.length+'열 감지됨 — 아래에서 열 매핑을 설정하세요';
+  var tbl=document.getElementById('previewTable');
+  tbl.innerHTML='<thead><tr>'+importedHeaders.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead>'
+    +'<tbody>'+importedRows.slice(0,5).map(function(r){
+      return '<tr>'+importedHeaders.map(function(_,i){return '<td>'+(r[i]!=null?String(r[i]):'')+'</td>';}).join('')+'</tr>';
+    }).join('')+'</tbody>';
+  document.getElementById('importPreview').style.display='block';
+  showMapDialog();
+}
+function showMapDialog(){
+  function autoMatch(key){
+    var kws=MAP_KEYWORDS[key]||[];
+    for(var i=0;i<importedHeaders.length;i++){
+      var h=importedHeaders[i].toLowerCase();
+      if(kws.some(function(k){return h.includes(k);}))return i;
+    }
+    return '';
+  }
+  var opts='<option value="">— 사용 안 함 —</option>'
+    +importedHeaders.map(function(h,i){return '<option value="'+i+'">'+h+'</option>';}).join('');
+  document.getElementById('mapFields').innerHTML=MAP_FIELDS.map(function(f){
+    var auto=String(autoMatch(f.key));
+    var selOpts=opts.replace('value="'+auto+'"','value="'+auto+'" selected');
+    return '<div class="map-row"><label style="font-size:0.88rem;font-weight:'+(f.required?'700':'400')+'">'
+      +(f.required?'* ':'')+f.label+'</label>'
+      +'<select id="map_'+f.key+'" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text)">'+selOpts+'</select></div>';
+  }).join('');
+  document.getElementById('mapModal').className='modal open';
+}
+function importMapped(){
+  var nameVal=document.getElementById('map_name').value;
+  if(nameVal===''){alert('품목명 열을 선택해주세요.');return;}
+  var nameCol=+nameVal;
+  var catCol=document.getElementById('map_cat').value;
+  var qtyCol=document.getElementById('map_qty').value;
+  var minCol=document.getElementById('map_min').value;
+  var unitCol=document.getElementById('map_unit').value;
+  var added=0,skipped=0;
+  importedRows.forEach(function(r){
+    var name=String(r[nameCol]!=null?r[nameCol]:'').trim();
+    if(!name){skipped++;return;}
+    items.push({
+      name:name,
+      cat: catCol!==''?String(r[+catCol]||'기타').trim():'기타',
+      qty: qtyCol!==''?(+r[+qtyCol]||0):0,
+      min: minCol!==''?(+r[+minCol]||0):0,
+      unit:unitCol!==''?String(r[+unitCol]||'개').trim():'개'
+    });
+    added++;
+  });
+  save();render();
+  document.getElementById('mapModal').className='modal';
+  document.getElementById('importPreview').style.display='none';
+  document.getElementById('fileInput').value='';
+  importedRows=[];importedHeaders=[];
+  alert('✅ '+added+'개 품목을 가져왔습니다.'+(skipped?'\\n(빈 이름 '+skipped+'개 건너뜀)':''));
 }
 render();
 </script>

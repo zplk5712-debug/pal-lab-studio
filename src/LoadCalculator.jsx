@@ -3,6 +3,8 @@ import {
   LOAD_INPUT_MODE_OPTIONS,
   MANUAL_LOAD_INPUT_OPTIONS,
   MATERIAL_GROUP_OPTIONS,
+  MAX_MODEL_FILE_SIZE_BYTES,
+  MAX_MODEL_FILE_SIZE_MB,
   MODEL_FILE_EXTENSIONS,
   SHAPE_OPTIONS,
 } from "./loadCalculatorData";
@@ -137,6 +139,17 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
 
   async function handleModelFileChange(itemId, file) {
     if (!file) {
+      return;
+    }
+
+    if (file.size > MAX_MODEL_FILE_SIZE_BYTES) {
+      setErrors((current) => ({
+        ...current,
+        [itemId]: {
+          ...(current[itemId] ?? {}),
+          modelFile: `파일이 너무 큽니다 (${formatFileSize(file.size)}). 최대 ${MAX_MODEL_FILE_SIZE_MB}MB까지 업로드할 수 있습니다.`,
+        },
+      }));
       return;
     }
 

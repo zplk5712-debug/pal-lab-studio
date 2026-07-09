@@ -57,8 +57,10 @@ import { VACUUM_GAUGE_DATABASE } from "./data/vacuumGaugeDatabase";
 import { MOTOR_DATABASE } from "./data/motorDatabase";
 import { REDUCER_DATABASE } from "./data/reducerDatabase";
 import { BALL_SCREW_DATABASE } from "./data/ballScrewDatabase";
+import { ELECTRIC_ACTUATOR_DATABASE } from "./data/electricActuatorDatabase";
 import {
   BALL_SCREW_FIELDS,
+  ELECTRIC_ACTUATOR_FIELDS,
   ENCODER_FIELDS,
   LM_GUIDE_FIELDS,
   MOTOR_FIELDS,
@@ -75,6 +77,7 @@ const PRODUCT_DB_STORAGE_KEYS = {
   motor: "motor-simulator-react:motor-db:v1",
   reducer: "motor-simulator-react:reducer-db:v1",
   ballScrew: "motor-simulator-react:ball-screw-db:v1",
+  electricActuator: "motor-simulator-react:electric-actuator-db:v1",
   lmGuide: "motor-simulator-react:lm-guide-db:v1",
   encoder: "motor-simulator-react:encoder-db:v1",
   vacuum: "motor-simulator-react:vacuum-db:v1",
@@ -88,6 +91,7 @@ const PRODUCT_DB_SEED = {
   motor: MOTOR_DATABASE,
   reducer: REDUCER_DATABASE,
   ballScrew: BALL_SCREW_DATABASE,
+  electricActuator: ELECTRIC_ACTUATOR_DATABASE,
   lmGuide: LM_GUIDE_DATABASE,
   encoder: ENCODER_DATABASE,
   vacuum: VACUUM_DATABASE,
@@ -101,6 +105,7 @@ const PRODUCT_DB_FIELDS_BY_KEY = {
   motor: MOTOR_FIELDS,
   reducer: REDUCER_FIELDS,
   ballScrew: BALL_SCREW_FIELDS,
+  electricActuator: ELECTRIC_ACTUATOR_FIELDS,
   lmGuide: LM_GUIDE_FIELDS,
   encoder: ENCODER_FIELDS,
   vacuum: VACUUM_FIELDS,
