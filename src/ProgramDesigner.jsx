@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { TEMPLATE_MAP, wrapTemplate, TYPE_META } from "./programTemplates";
 
 // ── CSS injected into generated HTML files ──────────────────────────────────
@@ -174,9 +174,6 @@ const PROGRAM_TYPES = [
 ];
 
 // ── Questions per type ───────────────────────────────────────────────────────
-// multi: true  → 여러 개 선택 가능 (체크박스 방식, 다음 버튼으로 진행)
-// type:"input" → 텍스트 직접 입력
-// (기본)       → 하나만 선택, 선택 즉시 다음으로 이동
 const TYPE_QUESTIONS = {
   motor_transfer: [
     { id: "direction", text: "이송 방향을 모두 선택해주세요", icon: "🔧", multi: true,
@@ -406,7 +403,7 @@ const TYPE_QUESTIONS = {
 };
 
 // ── Spec compiler ─────────────────────────────────────────────────────────────
-function compileWizardSpec(type, answers, extraNotes) {
+function compileWizardSpec(type, answers, extraNotes, customName) {
   const q = TYPE_QUESTIONS[type.id] || [];
   const answered = q
     .map(qItem => {
@@ -420,7 +417,7 @@ function compileWizardSpec(type, answers, extraNotes) {
   const detailText = answered.map(i => `• ${i.label}: ${i.value}`).join("\n")
     + (extraNotes ? `\n• 추가 요구사항: ${extraNotes}` : "");
   return {
-    name: `${type.label} 프로그램`,
+    name: customName || `${type.label} 프로그램`,
     purpose: `${type.label} — ${type.desc}`,
     input: fmt(answered.slice(0, half)) || type.desc,
     output: fmt(answered.slice(half)) + (extraNotes ? `\n추가 요구사항: ${extraNotes}` : "") || type.desc,
@@ -450,9 +447,23 @@ export default function ProgramDesigner({ onBack }) {
   const [extraNotes, setExtraNotes] = useState("");
   const [wizardShowExtra, setWizardShowExtra] = useState(false);
   const [spec, setSpec] = useState(null);
+  const [programName, setProgramName] = useState("");
   const [progress, setProgress] = useState(0);
   const [lastFileName, setLastFileName] = useState("");
   const [history, setHistory] = useState(loadHistory);
+
+  // 확인 화면에서 미리보기 HTML 생성 (이름 변경 시 실시간 반영)
+  const previewHtml = useMemo(() => {
+    if (phase !== "confirm" || !spec) return null;
+    try {
+      const tmplFn = TEMPLATE_MAP[spec._typeId];
+      if (!tmplFn) return null;
+      const effectiveSpec = { ...spec, name: programName || spec.name };
+      return injectBaseCSS(tmplFn(effectiveSpec));
+    } catch {
+      return null;
+    }
+  }, [phase, spec, programName]);
 
   function reset() {
     setPhase("typepick");
@@ -462,6 +473,7 @@ export default function ProgramDesigner({ onBack }) {
     setExtraNotes("");
     setWizardShowExtra(false);
     setSpec(null);
+    setProgramName("");
     setProgress(0);
     setLastFileName("");
   }
@@ -472,24 +484,22 @@ export default function ProgramDesigner({ onBack }) {
     setWizardAnswers({});
     setExtraNotes("");
     setWizardShowExtra(false);
+    setProgramName(`${type.label} 프로그램`);
     setPhase("wizard_qa");
   }
 
-  // 단일 선택: 선택 즉시 다음 질문으로 이동
   function handleWizardChoice(qId, choice) {
     const newAnswers = { ...wizardAnswers, [qId]: choice };
     setWizardAnswers(newAnswers);
     advanceWizard();
   }
 
-  // 멀티 선택: 토글만 하고 이동하지 않음
   function handleMultiToggle(qId, choice) {
     const prev = Array.isArray(wizardAnswers[qId]) ? wizardAnswers[qId] : [];
     const next = prev.includes(choice) ? prev.filter(x => x !== choice) : [...prev, choice];
     setWizardAnswers({ ...wizardAnswers, [qId]: next });
   }
 
-  // 다음 질문으로 이동 (멀티 선택 후 "다음" 버튼 또는 단일 선택 즉시)
   function advanceWizard() {
     const questions = TYPE_QUESTIONS[selectedType.id];
     if (wizardStep + 1 >= questions.length) {
@@ -506,11 +516,29 @@ export default function ProgramDesigner({ onBack }) {
   }
 
   function handleWizardFinish() {
-    const compiled = compileWizardSpec(selectedType, wizardAnswers, extraNotes);
+    const compiled = compileWizardSpec(selectedType, wizardAnswers, extraNotes, programName);
     setTimeout(() => {
       setSpec(compiled);
       setPhase("confirm");
     }, 50);
+  }
+
+  // 이력에서 재편집: 이전 답변 불러와 마지막 질문부터 시작
+  function reEditFromHistory(entry) {
+    if (!entry._rawState) return;
+    const { typeId, wizardAnswers: wa, extraNotes: en } = entry._rawState;
+    const type = PROGRAM_TYPES.find(t => t.id === typeId);
+    if (!type) { alert("이 항목은 재편집을 지원하지 않습니다."); return; }
+    const questions = TYPE_QUESTIONS[typeId] || [];
+    setSelectedType(type);
+    setWizardAnswers(wa || {});
+    setExtraNotes(en || "");
+    setWizardStep(Math.max(0, questions.length - 1));
+    setWizardShowExtra(true);
+    setProgramName(entry.name || `${type.label} 프로그램`);
+    setSpec(null);
+    setProgress(0);
+    setPhase("wizard_qa");
   }
 
   function generateProgram() {
@@ -518,23 +546,30 @@ export default function ProgramDesigner({ onBack }) {
     setProgress(20);
     setTimeout(() => {
       try {
-        const tmplFn = TEMPLATE_MAP[spec._typeId];
-        if (!tmplFn) throw new Error("템플릿 없음: " + spec._typeId);
+        const effectiveSpec = { ...spec, name: programName || spec.name };
+        const tmplFn = TEMPLATE_MAP[effectiveSpec._typeId];
+        if (!tmplFn) throw new Error("템플릿 없음: " + effectiveSpec._typeId);
         setProgress(60);
-        let html = wrapTemplate(tmplFn(spec), spec);
+        let html = wrapTemplate(tmplFn(effectiveSpec), effectiveSpec);
         setProgress(80);
-        html = injectInstructions(injectBaseCSS(html), spec);
+        html = injectInstructions(injectBaseCSS(html), effectiveSpec);
         setProgress(95);
-        const fName = htmlFileName(spec.name);
+        const fName = htmlFileName(effectiveSpec.name);
         downloadHtml(fName, html);
         setLastFileName(fName);
         const entry = {
           id: Date.now(),
-          name: spec.name,
-          purpose: spec.purpose,
+          name: effectiveSpec.name,
+          purpose: effectiveSpec.purpose,
           path: `${fName} (다운로드됨)`,
           code: html,
           date: new Date().toLocaleDateString("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+          // 재편집을 위한 원본 상태 저장
+          _rawState: {
+            typeId: selectedType.id,
+            wizardAnswers: { ...wizardAnswers },
+            extraNotes,
+          },
         };
         setHistory(prev => {
           const next = [entry, ...prev].slice(0, 20);
@@ -599,7 +634,7 @@ export default function ProgramDesigner({ onBack }) {
                     <span>📥</span>
                     <span>{entry.path}</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {entry.code && (
                       <button
                         type="button"
@@ -608,6 +643,16 @@ export default function ProgramDesigner({ onBack }) {
                         onClick={() => downloadHtml(htmlFileName(entry.name), entry.code)}
                       >
                         ⬇ 다시 다운로드
+                      </button>
+                    )}
+                    {entry._rawState && (
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        style={{ fontSize: 12, padding: "6px 12px", color: "#a78bfa", borderColor: "rgba(167,139,250,0.4)" }}
+                        onClick={() => reEditFromHistory(entry)}
+                      >
+                        ✏️ 재편집
                       </button>
                     )}
                     <button
@@ -707,7 +752,7 @@ export default function ProgramDesigner({ onBack }) {
                   </div>
                 )}
 
-                {/* 멀티 선택 (체크박스 방식) */}
+                {/* 멀티 선택 */}
                 {currentQ.multi && (
                   <div style={{ width: "100%" }}>
                     <p className="ai-wizard-q-sub">여러 개 선택 가능 · 해당 없으면 건너뛰기</p>
@@ -740,7 +785,7 @@ export default function ProgramDesigner({ onBack }) {
                   </div>
                 )}
 
-                {/* 단일 선택 (선택 즉시 이동) */}
+                {/* 단일 선택 */}
                 {!currentQ.type && !currentQ.multi && (
                   <div className="ai-wizard-choices">
                     {currentQ.choices.map((c, ci) => (
@@ -784,10 +829,42 @@ export default function ProgramDesigner({ onBack }) {
         <div className="ai-confirm-standalone">
           <p className="page-kicker" style={{ marginBottom: 8 }}>스펙 확인</p>
           <h2 style={{ marginBottom: 20, fontSize: "1.4rem" }}>이렇게 만들어 드릴까요?</h2>
+
+          {/* 프로그램 이름 수정 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: "0.82rem", color: "var(--muted)", marginBottom: 6 }}>
+              프로그램 이름 (직접 수정 가능)
+            </label>
+            <input
+              type="text"
+              value={programName}
+              onChange={e => setProgramName(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                background: "var(--surface)",
+                border: "1.5px solid rgba(108,99,255,0.5)",
+                borderRadius: 8,
+                color: "var(--text)",
+                fontSize: "1rem",
+                fontWeight: 600,
+                outline: "none",
+              }}
+              onFocus={e => { e.target.style.borderColor = "var(--accent)"; }}
+              onBlur={e => { e.target.style.borderColor = "rgba(108,99,255,0.5)"; }}
+            />
+          </div>
+
+          {/* 선택 내용 요약 */}
           <div className="ai-spec-card">
-            <div className="ai-spec-row"><span className="ai-spec-label">프로그램명</span><span className="ai-spec-value">{spec.name}</span></div>
-            <div className="ai-spec-row"><span className="ai-spec-label">유형</span><span className="ai-spec-value">{spec._icon} {spec._type}</span></div>
-            <div className="ai-spec-row"><span className="ai-spec-label">목적</span><span className="ai-spec-value">{spec.purpose}</span></div>
+            <div className="ai-spec-row">
+              <span className="ai-spec-label">유형</span>
+              <span className="ai-spec-value">{spec._icon} {spec._type}</span>
+            </div>
+            <div className="ai-spec-row">
+              <span className="ai-spec-label">목적</span>
+              <span className="ai-spec-value">{spec.purpose}</span>
+            </div>
             {spec._detail && (
               <div className="ai-spec-row" style={{ flexDirection: "column", gap: 4 }}>
                 <span className="ai-spec-label">선택 내용</span>
@@ -795,6 +872,26 @@ export default function ProgramDesigner({ onBack }) {
               </div>
             )}
           </div>
+
+          {/* 미리보기 iframe */}
+          {previewHtml && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ fontSize: "0.82rem", color: "var(--muted)", marginBottom: 8 }}>
+                🔍 생성될 프로그램 미리보기 <span style={{ fontSize: 11, opacity: 0.6 }}>(이름 수정 시 실시간 반영)</span>
+              </p>
+              <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", height: 440 }}>
+                <iframe
+                  srcDoc={previewHtml}
+                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                  title="프로그램 미리보기"
+                  sandbox="allow-scripts"
+                />
+              </div>
+              <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+                💡 다운로드 후에는 더블클릭만으로 바로 실행됩니다
+              </p>
+            </div>
+          )}
 
           <div style={{ background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
             <p style={{ fontWeight: 700, color: "#6c63ff", marginBottom: 6 }}>⚠️ 프로토타입 안내</p>
@@ -808,7 +905,7 @@ export default function ProgramDesigner({ onBack }) {
             <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 8 }}>생성될 파일</p>
             <div className="ai-file-item">
               <span className="ai-file-icon">🌐</span>
-              <span>{htmlFileName(spec.name)}</span>
+              <span>{htmlFileName(programName || spec.name)}</span>
             </div>
             <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}>
               파일 하나만 다운로드됩니다. 더블클릭하면 바로 실행!

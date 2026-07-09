@@ -3,6 +3,15 @@
 
 function _a(spec) { return spec._answers || {}; }
 function _n(v, d=0) { return parseFloat(v) || d; }
+function _has(val, kw) {
+  if (Array.isArray(val)) return val.some(function(v){ return v.includes(kw); });
+  return String(val || '').includes(kw);
+}
+function _first(val, fb) {
+  if (Array.isArray(val) && val.length > 0) return val[0];
+  if (typeof val === 'string' && val) return val;
+  return fb || '';
+}
 
 // ─── 유형별 메타 정보 (씨앗여부, 한계, 개선제안, 사용설명, 프롬프트) ──────
 export const TYPE_META = {
@@ -868,9 +877,16 @@ export function tmpl_motor_transfer(spec) {
   const ans = _a(spec);
   const dist = _n(ans.distance, 500);
   const dur  = _n(ans.duration, 10);
-  const dir  = ans.direction || '수평 이송 (좌우)';
-  const motion = ans.motion || '왕복 운동';
-  const hasEstop = (ans.estop || '').includes('필요');
+  const dirDisplay = Array.isArray(ans.direction) && ans.direction.length
+    ? ans.direction.join(' · ')
+    : (ans.direction || '수평 이송 (좌우)');
+  const hasVertical = _has(ans.direction, '수직');
+  const preferBack  = _has(ans.motion, '왕복');
+  const hasEstop    = _has(ans.control, '비상정지');
+  const hasJog      = _has(ans.control, '조그');
+  const hasSpeed    = _has(ans.control, '속도 슬라이더');
+  const hasPause    = _has(ans.control, '일시정지') || true; // 항상 일시정지 지원
+  const hasLog      = _has(ans.log, '저장') || _has(ans.log, 'CSV');
   return `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>${spec.name}</title>
 <style>
@@ -885,7 +901,7 @@ export function tmpl_motor_transfer(spec) {
 </style></head><body>
 <div class="app-header"><div>
   <div class="app-title">↔️ ${spec.name}</div>
-  <div class="app-sub">${dir}</div>
+  <div class="app-sub">${dirDisplay}${hasVertical ? ' (수직 포함)' : ''}</div>
 </div></div>
 
 <div class="card">
@@ -895,8 +911,8 @@ export function tmpl_motor_transfer(spec) {
     <div><label>이동 시간 (초)</label><input type="number" id="cDur" value="${dur}" min="1" step="0.1"></div>
     <div><label>동작 방식</label>
       <select id="cMotion">
-        <option value="once" ${motion.includes('한 방향')? 'selected':''}>한 방향</option>
-        <option value="back" ${motion.includes('왕복')? 'selected':''}>왕복</option>
+        <option value="once" ${!preferBack ? 'selected':''}>한 방향</option>
+        <option value="back" ${preferBack ? 'selected':''}>왕복</option>
       </select>
     </div>
     <div><label>반복</label>
@@ -927,9 +943,11 @@ export function tmpl_motor_transfer(spec) {
     <div class="stat-box"><div class="stat-value" id="sCnt">0</div><div class="stat-label">완료 횟수</div></div>
   </div>
   <div class="status-bar"><div class="dot" id="stDot"></div><span id="stTxt">대기 중</span></div>
+  ${hasSpeed ? `<div style="margin:10px 0 4px"><label style="font-size:0.82rem;color:var(--muted)">속도 배율</label><div style="display:flex;align-items:center;gap:10px;margin-top:4px"><input type="range" id="speedRange" min="10" max="300" value="100" oninput="document.getElementById('spVal').textContent=this.value+'%'" style="flex:1;cursor:pointer"><span id="spVal" style="font-size:0.82rem;color:var(--accent);width:42px;text-align:right">100%</span></div></div>` : ''}
   <div class="btn-row">
     <button class="btn btn-success" id="btnRun" onclick="toggle()">▶ 시작</button>
     ${hasEstop ? '<button class="btn btn-danger" onclick="estop()">⛔ 비상정지</button>' : ''}
+    ${hasJog ? '<button class="btn btn-ghost" onclick="jog(-1)">◀ 조그</button><button class="btn btn-ghost" onclick="jog(1)">조그 ▶</button>' : ''}
     <button class="btn btn-ghost" onclick="doReset()">초기화</button>
   </div>
 </div>
@@ -964,7 +982,8 @@ function toggle(){
   else{
     stopped=false;
     var dist=+document.getElementById('cDist').value||500,dur2=+document.getElementById('cDur').value||10;
-    var step=dist/(dur2*20);
+    var spEl=${hasSpeed ? "document.getElementById('speedRange')" : 'null'};
+    var step=dist/(dur2*20)*(spEl?+spEl.value/100:1);
     startT=Date.now()-elapsed*1000;
     iv=setInterval(function(){
       elapsed=(Date.now()-startT)/1000;
@@ -986,6 +1005,7 @@ function toggle(){
 }
 function estop(){clearInterval(iv);running=false;pos=0;dir2=1;elapsed=0;btnRun.textContent='▶ 시작';btnRun.className='btn btn-success';setStatus('off','비상정지');addLog('⛔ 비상정지!');updateDisplay();}
 function doReset(){clearInterval(iv);running=false;pos=0;dir2=1;elapsed=0;cnt=0;sCnt.textContent=0;sElap.textContent='0.0';btnRun.textContent='▶ 시작';btnRun.className='btn btn-success';setStatus('','대기 중');updateDisplay();}
+${hasJog ? "function jog(d){if(running)return;var dist=+document.getElementById('cDist').value||500;pos+=d*10;pos=Math.max(0,Math.min(dist,pos));updateDisplay();addLog('조그: '+Math.round(pos)+'mm');}" : ''}
 updateDisplay();
 </script>
 </body></html>`;
@@ -994,8 +1014,12 @@ updateDisplay();
 // ─── 7. 모터 회전 시뮬레이터 ───────────────────────────────────────
 export function tmpl_motor_rotation(spec) {
   const ans = _a(spec);
-  const speed = _n(ans.speed, 3);
-  const biDir = (ans.direction || '').includes('정역');
+  const speed        = _n(ans.speed, 3);
+  const biDir        = _has(ans.direction, '정역');
+  const hasEstopR    = _has(ans.control, '비상정지');
+  const hasSpeedR    = _has(ans.control, '속도 슬라이더');
+  const prefTime     = _has(ans.stop, '시간');
+  const prefCount    = _has(ans.stop, '횟수');
   return `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>${spec.name}</title>
 <style>
@@ -1015,9 +1039,9 @@ export function tmpl_motor_rotation(spec) {
     <div><label>1회전 시간 (초)</label><input type="number" id="cSpeed" value="${speed}" min="0.1" step="0.1"></div>
     <div><label>정지 조건</label>
       <select id="cStop">
-        <option value="manual">수동 정지</option>
-        <option value="time">시간 지정</option>
-        <option value="count">횟수 지정</option>
+        <option value="manual" ${(!prefTime&&!prefCount)?'selected':''}>수동 정지</option>
+        <option value="time" ${prefTime?'selected':''}>시간 지정</option>
+        <option value="count" ${prefCount?'selected':''}>횟수 지정</option>
       </select>
     </div>
     <div id="timeRow"><label>동작 시간 (초)</label><input type="number" id="cTime" value="10" min="1"></div>
@@ -1040,10 +1064,12 @@ export function tmpl_motor_rotation(spec) {
     <div class="stat-box"><div class="stat-value" id="sDir" style="font-size:1rem">—</div><div class="stat-label">방향</div></div>
   </div>
   <div class="status-bar"><div class="dot" id="stDot"></div><span id="stTxt">대기 중</span></div>
+  ${hasSpeedR ? `<div style="margin:10px 0 4px"><label style="font-size:0.82rem;color:var(--muted)">속도 배율</label><div style="display:flex;align-items:center;gap:10px;margin-top:4px"><input type="range" id="rSpeedRange" min="10" max="300" value="100" oninput="document.getElementById('rSpVal').textContent=this.value+'%'" style="flex:1;cursor:pointer"><span id="rSpVal" style="font-size:0.82rem;color:var(--accent);width:42px;text-align:right">100%</span></div></div>` : ''}
   <div class="btn-row">
     <button class="btn btn-success" id="btnRun" onclick="toggle()">▶ 시작</button>
     ${biDir ? '<button class="btn btn-ghost" onclick="flipDir()">⇄ 방향 전환</button>' : ''}
-    <button class="btn btn-danger" onclick="doReset()">초기화</button>
+    ${hasEstopR ? '<button class="btn btn-danger" onclick="doReset(true)">⛔ 비상정지</button>' : ''}
+    <button class="btn btn-ghost" onclick="doReset()">초기화</button>
   </div>
 </div>
 
@@ -1214,9 +1240,11 @@ renderSetup();renderList();
 // ─── 9. 센서 모니터링 ──────────────────────────────────────────────
 export function tmpl_sensor(spec) {
   const ans = _a(spec);
-  const sensorName = ans.sensor_type || '온도';
-  const unit = ans.unit || (sensorName.includes('온도')?'°C':sensorName.includes('압력')?'kPa':'');
-  const threshold = _n(ans.alarm_threshold, 80);
+  const sensorName = _first(ans.target, '온도');
+  const unit = sensorName.includes('온도')?'°C':sensorName.includes('압력')?'kPa':sensorName.includes('진동')?'g':sensorName.includes('습도')?'%RH':sensorName.includes('전압')?'V':'';
+  const threshold  = 80;
+  const hasCSV     = _has(ans.save, 'CSV') || _has(ans.save, '저장');
+  const allTargets = Array.isArray(ans.target) && ans.target.length > 1 ? ans.target : null;
   return `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><title>${spec.name}</title>
 <style>
@@ -1265,12 +1293,14 @@ export function tmpl_sensor(spec) {
   <div class="status-bar"><div class="dot" id="stDot"></div><span id="stTxt">정지</span></div>
   <div class="btn-row">
     <button class="btn btn-success" id="btnMon" onclick="toggleMon()">▶ 모니터링 시작</button>
+    ${hasCSV ? '<button class="btn btn-ghost" onclick="csvExport()">CSV 내보내기</button>' : ''}
     <button class="btn btn-ghost" onclick="clearData()">데이터 초기화</button>
   </div>
 </div>
+${allTargets ? `<div class="card" style="max-width:720px;margin:0 auto 16px"><div class="card-title">측정 채널</div><div style="display:flex;gap:8px;flex-wrap:wrap">${allTargets.map(function(t){return '<span style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:0.85rem">'+t+'</span>';}).join('')}</div></div>` : ''}
 
 <script>
-var iv=null,vals=[],monRun=false;
+var iv=null,vals=[],exportLog=[],monRun=false;
 function rnd(mn,mx){return mn+Math.random()*(mx-mn);}
 function toggleMon(){
   if(monRun){clearInterval(iv);monRun=false;document.getElementById('btnMon').textContent='▶ 모니터링 시작';document.getElementById('btnMon').className='btn btn-success';document.getElementById('stDot').className='dot';document.getElementById('stTxt').textContent='정지';}
@@ -1285,6 +1315,7 @@ function measure(){
   var mn=+document.getElementById('cMin').value,mx=+document.getElementById('cMax').value;
   var v=Math.round(rnd(mn,mx)*10)/10;
   vals.push(v);if(vals.length>60)vals.shift();
+  exportLog.push({t:new Date().toLocaleTimeString('ko-KR'),v:v});
   document.getElementById('curVal').textContent=v;
   document.getElementById('curUnit').textContent=document.getElementById('cUnit').value;
   var pct=Math.max(0,Math.min(100,(v-mn)/(mx-mn)*100));
@@ -1302,7 +1333,8 @@ function measure(){
     sp.appendChild(b);
   });
 }
-function clearData(){vals=[];document.getElementById('spark').innerHTML='';document.getElementById('curVal').textContent='—';['sMin','sMax','sAvg'].forEach(function(id){document.getElementById(id).textContent='—';});document.getElementById('sCnt').textContent=0;}
+function clearData(){vals=[];exportLog=[];document.getElementById('spark').innerHTML='';document.getElementById('curVal').textContent='—';['sMin','sMax','sAvg'].forEach(function(id){document.getElementById(id).textContent='—';});document.getElementById('sCnt').textContent=0;}
+${hasCSV ? "function csvExport(){if(!exportLog.length){alert('데이터가 없습니다.');return;}var unit=document.getElementById('cUnit').value;var rows=['시각,'+document.getElementById('cName').value+'('+unit+')'];exportLog.forEach(function(d){rows.push(d.t+','+d.v);});var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\\uFEFF'+encodeURIComponent(rows.join('\\n'));a.download='sensor-log.csv';a.click();}" : ''}
 </script>
 </body></html>`;
 }
