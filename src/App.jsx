@@ -218,14 +218,6 @@ const TOOLS = [
     actionLabel: "열기",
   },
   {
-    id: "board",
-    title: "게시판",
-    description: "사용해보신 분들의 후기와 의견을 자유롭게 남기고, 다른 사람들의 글도 확인할 수 있습니다.",
-    status: "사용 가능",
-    caption: "Feedback Board",
-    actionLabel: "열기",
-  },
-  {
     id: "converter",
     title: "일괄 문서 변환기",
     description: "이미지 포맷 변환, 이미지→PDF, 엑셀↔CSV, 실험 데이터(ASCII) 변환을 한 번에 처리하고 변환 전후를 비교할 수 있습니다.",
@@ -400,9 +392,21 @@ export default function App() {
           <span className="home-logo-word">EasyLab</span>
         </div>
         <div className="home-copy">
+          <button
+            type="button"
+            className="home-board-badge"
+            onClick={() => setPage("board")}
+            onMouseEnter={() => preloadPage("board")}
+            onFocus={() => preloadPage("board")}
+          >
+            <span className="home-board-badge__icon">💬</span>
+            <span className="home-board-badge__title">게시판</span>
+            <span className="home-board-badge__desc">사용 후기와 의견을 남겨보세요</span>
+          </button>
           <p className="page-kicker">Easy Access to Program &amp; AI</p>
           <h1>이지랩 스튜디오</h1>
-          <p className="home-tagline">"몰라도 괜찮아요 — 물어보면 전문가처럼 답해드립니다."</p>
+          <p className="home-tagline">"복잡한 엔지니어링, 이지랩으로 간단하게."</p>
+          <p className="home-credit">— BY J.S.KIM</p>
           <p className="home-desc">
             모션 설계부터 열해석, AI 코드 생성까지<br />엔지니어의 모든 작업을 한 곳에서.
           </p>
@@ -410,8 +414,8 @@ export default function App() {
             <div className="home-mode-item" onClick={() => setPage("motor")} onMouseEnter={() => preloadPage("motor")} onFocus={() => preloadPage("motor")}>
               <span className="home-mode-num">01</span>
               <span className="home-mode-name">
-                모션 설계 도우미
-                <span className="home-mode-desc"> · 모터·감속기·볼스크류 자동 추천</span>
+                <span className="home-mode-title">모션 설계 도우미</span>
+                <span className="home-mode-desc">모터·감속기·볼스크류·LM가이드·엔코더 자동 추천</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
@@ -419,8 +423,8 @@ export default function App() {
             <div className="home-mode-item" onClick={() => setPage("load")} onMouseEnter={() => preloadPage("load")} onFocus={() => preloadPage("load")}>
               <span className="home-mode-num">02</span>
               <span className="home-mode-name">
-                하중 계산
-                <span className="home-mode-desc"> · 형상·소재로 안전율 반영 하중 계산</span>
+                <span className="home-mode-title">하중 계산</span>
+                <span className="home-mode-desc">형상·소재·수량으로 중량과 안전율 반영 하중 계산</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
@@ -428,8 +432,8 @@ export default function App() {
             <div className="home-mode-item" onClick={() => setPage("thermal")} onMouseEnter={() => preloadPage("thermal")} onFocus={() => preloadPage("thermal")}>
               <span className="home-mode-num">03</span>
               <span className="home-mode-name">
-                열해석
-                <span className="home-mode-desc"> · STL 업로드 → 3D 온도 분포 시각화</span>
+                <span className="home-mode-title">열해석</span>
+                <span className="home-mode-desc">STL·STEP 업로드 → FEM 3D 온도 분포 시각화</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
@@ -437,8 +441,8 @@ export default function App() {
             <div className="home-mode-item" onClick={() => setPage("ai-assistant")} onMouseEnter={() => preloadPage("ai-assistant")} onFocus={() => preloadPage("ai-assistant")}>
               <span className="home-mode-num">04</span>
               <span className="home-mode-name">
-                프로그램 설계소
-                <span className="home-mode-desc"> · 질문에 답하면 실행 가능한 프로토타입 제작</span>
+                <span className="home-mode-title">프로그램 설계소</span>
+                <span className="home-mode-desc">질문에 답하면 실행 가능한 프로토타입 제작</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
@@ -446,26 +450,17 @@ export default function App() {
             <div className="home-mode-item" onClick={() => setPage("db")} onMouseEnter={() => preloadPage("db")} onFocus={() => preloadPage("db")}>
               <span className="home-mode-num">05</span>
               <span className="home-mode-name">
-                통합 카탈로그 검색
-                <span className="home-mode-desc"> · 모션 구동계·센서·진공부품 카탈로그 검색</span>
-              </span>
-              <span className="home-mode-tag">ACTIVE</span>
-              <span className="home-mode-arrow">→</span>
-            </div>
-            <div className="home-mode-item" onClick={() => setPage("board")} onMouseEnter={() => preloadPage("board")} onFocus={() => preloadPage("board")}>
-              <span className="home-mode-num">06</span>
-              <span className="home-mode-name">
-                게시판
-                <span className="home-mode-desc"> · 사용 후기와 의견 남기기</span>
+                <span className="home-mode-title">통합 카탈로그 검색</span>
+                <span className="home-mode-desc">모터·감속기·볼스크류·엔코더·진공부품 카탈로그 검색</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("converter")} onMouseEnter={() => preloadPage("converter")} onFocus={() => preloadPage("converter")}>
-              <span className="home-mode-num">07</span>
+              <span className="home-mode-num">06</span>
               <span className="home-mode-name">
-                일괄 문서 변환기
-                <span className="home-mode-desc"> · 이미지·PDF·엑셀·실험 데이터 일괄 변환</span>
+                <span className="home-mode-title">일괄 문서 변환기</span>
+                <span className="home-mode-desc">이미지·PDF·엑셀·실험 데이터를 한 번에 변환</span>
               </span>
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
@@ -512,13 +507,6 @@ export default function App() {
                 </div>
               </li>
               <li>
-                <span className="home-feature-icon home-feature-icon--pink">💬</span>
-                <div>
-                  <strong>게시판</strong>
-                  <p>사용해본 분들의 후기를 함께 남기고 확인합니다</p>
-                </div>
-              </li>
-              <li>
                 <span className="home-feature-icon home-feature-icon--blue">🗂️</span>
                 <div>
                   <strong>일괄 문서 변환기</strong>
@@ -540,7 +528,7 @@ export default function App() {
 
         <div className="tool-grid">
           {TOOLS.map((tool, index) => {
-            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "board" || tool.id === "converter";
+            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "converter";
 
             return (
               <article
@@ -584,11 +572,6 @@ export default function App() {
                 ) : null}
                 {tool.id === "ai-assistant" ? (
                   <button type="button" className="ghost-button" onClick={() => setPage("ai-assistant")}>
-                    {tool.actionLabel}
-                  </button>
-                ) : null}
-                {tool.id === "board" ? (
-                  <button type="button" className="ghost-button" onClick={() => setPage("board")}>
                     {tool.actionLabel}
                   </button>
                 ) : null}

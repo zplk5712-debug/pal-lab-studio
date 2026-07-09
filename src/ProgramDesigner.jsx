@@ -591,7 +591,7 @@ export default function ProgramDesigner({ onBack }) {
         <div>
           <p className="page-kicker">MODE 04</p>
           <h1>프로그램 설계소</h1>
-          <p>유형을 선택하면 실행 가능한 프로토타입을 만들어 드려요</p>
+          <p>유형을 선택하면 실행 가능한 프로토타입을 만들어 드려요 — AI와 협업하면 완벽한 프로그램까지 완성할 수 있어요</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {history.length > 0 && (
@@ -682,6 +682,7 @@ export default function ProgramDesigner({ onBack }) {
         <div className="ai-typepick">
           <div className="ai-guide-card">
             <h3>프로그램 설계소 사용법</h3>
+            <p className="ai-guide-tagline">🤝 AI와 협업하면 프로토타입에서 완벽한 프로그램까지 완성할 수 있어요</p>
             <ul>
               <li><strong>1. 유형 선택</strong> — 만들고 싶은 프로그램 유형을 아래에서 고릅니다.</li>
               <li><strong>2. 질문에 답하기</strong> — 원하는 기능을 여러 개 골라주세요. 더 구체적일수록 완성도가 높아져요.</li>
@@ -690,8 +691,8 @@ export default function ProgramDesigner({ onBack }) {
             <p className="ai-guide-note">
               ⚠️ 여기서 만들어지는 프로그램은 <strong>완성된 최종 프로그램이 아니라</strong>, 완성형으로 가기 위한
               <strong> 중간 단계(프로토타입)</strong>입니다. 실제 하드웨어 연동·서버·DB 저장 같은 기능은 빠져 있어요.
-              다운로드한 파일 안에 담긴 안내를 챗GPT·Claude 같은 <strong>생성형 AI 코딩 도구</strong>에 그대로 붙여넣으면,
-              그 도구가 진짜 완성형 프로그램까지 만들어 줄 수 있습니다.
+              다운로드한 파일 안에 담긴 안내만 붙여넣어도 되고, <strong>파일(프로그램 코드) 자체를 통째로</strong> 붙여넣어도 됩니다.
+              챗GPT·Claude 같은 <strong>생성형 AI 코딩 도구</strong>에 넣으면, 그 도구가 진짜 완성형 프로그램까지 만들어 줄 수 있습니다.
             </p>
           </div>
           <p className="ai-typepick-title">어떤 프로그램을 만들고 싶으신가요?</p>
