@@ -369,6 +369,10 @@ export const MOTOR_MANUFACTURERS = [
   "Faulhaber",
   "MISUMI",
   "Fastech",
+  "Sanyo Denki",
+  "Minebea Mitsumi",
+  "PiezoMotor",
+  "Attocube Systems",
 ];
 
 export const MOTOR_TYPES = [
@@ -403,6 +407,7 @@ export const ELECTRIC_ACTUATOR_MANUFACTURERS = [
   "IAI",
   "THK",
   "Parker",
+  "Fastech",
 ];
 
 export const ELECTRIC_ACTUATOR_TYPES = [
@@ -421,6 +426,9 @@ export const VACUUM_PUMP_MANUFACTURERS = [
   "Ulvac",
   "PerkinElmer (Ultek)",
   "Alpha-EVS",
+  "Gamma Vacuum",
+  "Duniway Stockroom",
+  "Sumitomo (SHI) Cryogenics",
 ];
 
 export const VACUUM_PUMP_TYPES = [
