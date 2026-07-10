@@ -13,7 +13,7 @@ export const VACUUM_MOTION_DATABASE = [
     maxBakeoutTemp_C: "catalog_check_required",
     weight_kg: null,
     application: "sample_transfer_uhv",
-    catalogUrl: "https://www.uhvdesign.com/",
+    catalogUrl: "https://www.uhvdesign.com/products/y-xy-xyz-and-xyzt-motion/",
     note: "리니어 시프트 메커니즘, 벨로우즈 실, 50mm 스트로크. 모터 구동 옵션 있음",
   },
   {
@@ -47,7 +47,7 @@ export const VACUUM_MOTION_DATABASE = [
     maxBakeoutTemp_C: "catalog_check_required",
     weight_kg: null,
     application: "sample_manipulation_uhv",
-    catalogUrl: "https://huntvac.com/",
+    catalogUrl: "https://huntvac.com/products-catalog/section-4/wobblestick-devices/",
     note: "벨로우즈 실 워블스틱, 샘플 조작용",
   },
   {
@@ -64,7 +64,7 @@ export const VACUUM_MOTION_DATABASE = [
     maxBakeoutTemp_C: "catalog_check_required",
     weight_kg: null,
     application: "sample_positioning_uhv",
-    catalogUrl: "https://www.mdcprecision.com/",
+    catalogUrl: "https://www.mdcprecision.com/sections/v-plane-xyz-stages",
     note: "V-Plane XYZ 스테이지, 마이크로미터 수동 구동",
   },
   {
@@ -98,7 +98,7 @@ export const VACUUM_MOTION_DATABASE = [
     maxBakeoutTemp_C: "catalog_check_required",
     weight_kg: null,
     application: "long_stroke_sample_transfer",
-    catalogUrl: "https://www.uhvdesign.com/",
+    catalogUrl: "https://www.uhvdesign.com/products/y-xy-xyz-and-xyzt-motion/",
     note: "롱스트로크 리니어 시프트, 300mm 이송",
   },
   {
@@ -115,7 +115,7 @@ export const VACUUM_MOTION_DATABASE = [
     maxBakeoutTemp_C: "catalog_check_required",
     weight_kg: null,
     application: "fine_linear_adjustment_uhv",
-    catalogUrl: "https://www.thermionics.com/",
+    catalogUrl: "https://thermionics.com/ultra-high-vacuum-products/manipulation-motion-sample-handling/uhv-feedthroughs/",
     note: "벨로우즈 실 정밀 리니어 액추에이터",
   },
   {
@@ -132,7 +132,7 @@ export const VACUUM_MOTION_DATABASE = [
     maxBakeoutTemp_C: "catalog_check_required",
     weight_kg: null,
     application: "loadlock_sample_transfer",
-    catalogUrl: "https://www.lesker.com/",
+    catalogUrl: "https://www.lesker.com/newweb/sample_manipulation/linear-telescopic-transfer-arm.cfm",
     note: "자기 커플링 트랜스퍼 암, 로드락→챔버 시료 이송",
   },
 ];

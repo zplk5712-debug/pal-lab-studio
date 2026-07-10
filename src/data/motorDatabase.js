@@ -16,7 +16,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no",
     weight_kg: "catalog_check_required",
     application: "precision_stage_drive",
-    catalogUrl: "https://www.orientalmotor.com/",
+    catalogUrl: "https://www.orientalmotor.com/stepper-motors/5-phase-stepper-motors-pkp-series.html",
     note: "3상 1.2° 스텝모터, 60mm 프레임",
   },
   {
@@ -36,7 +36,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no",
     weight_kg: "catalog_check_required",
     application: "compact_stage_drive",
-    catalogUrl: "https://www.orientalmotor.com/",
+    catalogUrl: "https://www.orientalmotor.com/stepper-motors/5-phase-stepper-motors-pkp-series.html",
     note: "3상 1.2° 스텝모터, 42mm 프레임",
   },
   {
@@ -56,7 +56,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no_external_encoder_required",
     weight_kg: "catalog_check_required",
     application: "uhv_compatible_nano_positioning",
-    catalogUrl: "https://www.nanomotion.com/",
+    catalogUrl: "https://www.nanomotion.com/product/hr4-nanomotion-motor/",
     note: "초음파 압전 세라믹 모터, 4소자. 진공/UHV 옵션 제공, 나노미터급 분해능, 무전원 시 자체 홀딩",
   },
   {
@@ -76,7 +76,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no_external_encoder_required",
     weight_kg: "catalog_check_required",
     application: "uhv_compatible_nano_positioning",
-    catalogUrl: "https://www.nanomotion.com/",
+    catalogUrl: "https://www.nanomotion.com/product/hr4-nanomotion-motor/",
     note: "초음파 압전 세라믹 모터, 2소자. 소형 스테이지용",
   },
   {
@@ -96,7 +96,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "24bit_absolute",
     weight_kg: "catalog_check_required",
     application: "general_servo_positioning",
-    catalogUrl: "https://www.yaskawa.com/",
+    catalogUrl: "https://www.yaskawa.com/products/motion/sigma-7-servo-products/rotary-servo-motors/sgm7j",
     note: "Sigma-7 시리즈 100W, 24비트 앱솔루트 엔코더 내장",
   },
   {
@@ -116,7 +116,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no",
     weight_kg: "catalog_check_required",
     application: "compact_stage_drive",
-    catalogUrl: "https://www.orientalmotor.com/",
+    catalogUrl: "https://www.orientalmotor.com/stepper-motors/5-phase-stepper-motors-pkp-series.html",
     note: "3상 1.2° 스텝모터, 28mm 소형 프레임",
   },
   {
@@ -136,7 +136,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no",
     weight_kg: "catalog_check_required",
     application: "high_torque_stage_drive",
-    catalogUrl: "https://www.orientalmotor.com/",
+    catalogUrl: "https://www.orientalmotor.com/stepper-motors/5-phase-stepper-motors-pkp-series.html",
     note: "3상 1.2° 스텝모터, 85mm 대형 프레임 고토크",
   },
   {
@@ -156,7 +156,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no",
     weight_kg: "catalog_check_required",
     application: "general_positioning",
-    catalogUrl: "https://www.orientalmotor.com/",
+    catalogUrl: "https://www.orientalmotor.com/stepper-motors/5-phase-stepper-motors-pkp-series.html",
     note: "2상 1.8° 스텝모터, 42mm 프레임",
   },
   {
@@ -176,7 +176,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no_external_encoder_required",
     weight_kg: "catalog_check_required",
     application: "uhv_compatible_nano_positioning",
-    catalogUrl: "https://www.nanomotion.com/",
+    catalogUrl: "https://www.nanomotion.com/product/hr4-nanomotion-motor/",
     note: "초음파 압전 세라믹 모터, 1소자. 초소형 스테이지용",
   },
   {
@@ -196,7 +196,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no_external_encoder_required",
     weight_kg: "catalog_check_required",
     application: "uhv_compatible_nano_positioning",
-    catalogUrl: "https://www.nanomotion.com/",
+    catalogUrl: "https://www.nanomotion.com/product/hr4-nanomotion-motor/",
     note: "초음파 압전 세라믹 모터, 8소자. 최대 추력 사양, 진공/UHV 옵션",
   },
   {
@@ -216,7 +216,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "no_external_encoder_required",
     weight_kg: "catalog_check_required",
     application: "compact_piezo_rotation_stage",
-    catalogUrl: "https://www.physikinstrumente.com/",
+    catalogUrl: "https://www.physikinstrumente.com/en/expertise/technology/piezoelectric-drives/piline-ultrasonic-motors",
     note: "PILine 초음파 압전 로터리 모터",
   },
   {
@@ -236,7 +236,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "24bit_absolute",
     weight_kg: "catalog_check_required",
     application: "general_servo_positioning",
-    catalogUrl: "https://www.yaskawa.com/",
+    catalogUrl: "https://www.yaskawa.com/products/motion/sigma-7-servo-products/rotary-servo-motors/sgm7j",
     note: "Sigma-7 시리즈 400W",
   },
   {
@@ -256,7 +256,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "23bit_absolute",
     weight_kg: "catalog_check_required",
     application: "compact_servo_positioning",
-    catalogUrl: "https://industrial.panasonic.com/",
+    catalogUrl: "https://industry.panasonic.com/global/en/products/motor/fa-motor/ac-servo/a6",
     note: "MINAS A6 시리즈 100W, 23비트 앱솔루트 엔코더",
   },
   {
@@ -276,7 +276,7 @@ export const MOTOR_DATABASE = [
     builtInEncoder: "optional",
     weight_kg: "catalog_check_required",
     application: "compact_brushless_drive",
-    catalogUrl: "https://www.faulhaber.com/",
+    catalogUrl: "https://www.faulhaber.com/en/products/brushless-dc-motors/bx4/",
     note: "브러시리스 DC 서보모터, 32mm 4극",
   },
   {

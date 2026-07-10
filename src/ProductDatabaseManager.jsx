@@ -294,7 +294,16 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
         keyword === "" ||
         String(item.series ?? "").toLowerCase().includes(keyword) ||
         String(item.model ?? "").toLowerCase().includes(keyword) ||
-        String(item.manufacturer ?? "").toLowerCase().includes(keyword);
+        String(item.manufacturer ?? "").toLowerCase().includes(keyword) ||
+        String(item.motorType ?? "").toLowerCase().includes(keyword) ||
+        String(item.reducerType ?? "").toLowerCase().includes(keyword) ||
+        String(item.actuatorType ?? "").toLowerCase().includes(keyword) ||
+        String(item.encoderType ?? "").toLowerCase().includes(keyword) ||
+        String(item.pumpType ?? "").toLowerCase().includes(keyword) ||
+        String(item.valveType ?? "").toLowerCase().includes(keyword) ||
+        String(item.motionType ?? "").toLowerCase().includes(keyword) ||
+        String(item.gaugeType ?? "").toLowerCase().includes(keyword) ||
+        String(item.partType ?? "").toLowerCase().includes(keyword);
 
       return matchesSubCategory && matchesSearch;
     });
@@ -485,7 +494,7 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
 
       <main className="db-grid">
         <section className="card db-sidebar-card">
-          <h2>{config.title} 필터</h2>
+          <h2>{config.title} 검색</h2>
           {config.subCategoryField ? (
             <div className="field">
               <span>{config.subCategoryLabel}</span>

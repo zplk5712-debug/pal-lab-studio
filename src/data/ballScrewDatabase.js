@@ -14,7 +14,7 @@ export const BALL_SCREW_DATABASE = [
     screwLength_mm: null,
     material: "bearing_steel",
     application: "precision_linear_drive",
-    catalogUrl: "https://www.thk.com/",
+    catalogUrl: "https://www.thk.com/us/en/products/ball_screw/",
     note: "정밀 연삭 볼스크류, 축경 16mm 리드 5mm",
   },
   {
@@ -32,7 +32,7 @@ export const BALL_SCREW_DATABASE = [
     screwLength_mm: null,
     material: "bearing_steel",
     application: "high_speed_linear_drive",
-    catalogUrl: "https://www.thk.com/",
+    catalogUrl: "https://www.thk.com/us/en/products/ball_screw/",
     note: "정밀 연삭 볼스크류, 축경 20mm 리드 10mm",
   },
   {
@@ -50,7 +50,7 @@ export const BALL_SCREW_DATABASE = [
     screwLength_mm: null,
     material: "bearing_steel",
     application: "precision_linear_drive",
-    catalogUrl: "https://www.hiwin.com/",
+    catalogUrl: "https://hiwin.com/products/ballscrews-supports/",
     note: "정밀 연삭 볼스크류, THK BNK1605 대응급",
   },
   {
@@ -68,7 +68,7 @@ export const BALL_SCREW_DATABASE = [
     screwLength_mm: null,
     material: "bearing_steel",
     application: "precision_linear_drive",
-    catalogUrl: "https://www.nsk.com/",
+    catalogUrl: "https://www.nsk.com/am-en/products/linear/linear-products/ball-screws/",
     note: "정밀 연삭 볼스크류",
   },
   {

@@ -17,7 +17,7 @@ export const LM_GUIDE_DATABASE = [
     railLength_mm: null,
     material: "bearing_steel",
     application: "general_linear_axis",
-    catalogUrl: "https://www.thk.com/",
+    catalogUrl: "https://www.thk.com/us/en/products/lm_guide/",
     note: "catalog_check_required",
   },
   {
@@ -38,7 +38,7 @@ export const LM_GUIDE_DATABASE = [
     railLength_mm: null,
     material: "bearing_steel",
     application: "precision_stage",
-    catalogUrl: "https://www.hiwin.com/",
+    catalogUrl: "https://hiwin.com/products/linear-guideways/",
     note: "catalog_check_required",
   },
   {
@@ -59,7 +59,7 @@ export const LM_GUIDE_DATABASE = [
     railLength_mm: null,
     material: "stainless_option_available",
     application: "compact_instrument",
-    catalogUrl: "https://www.ikont.co.jp/eg/",
+    catalogUrl: "https://www.ikont.co.jp/eg/product/chocudo/index.html",
     note: "catalog_check_required",
   },
   {
@@ -80,7 +80,7 @@ export const LM_GUIDE_DATABASE = [
     railLength_mm: null,
     material: "bearing_steel",
     application: "machine_axis",
-    catalogUrl: "https://www.nsk.com/",
+    catalogUrl: "https://www.nsk.com/am-en/products/linear/linear-products/linear-guides/linear-guides-nh-and-ns-series/",
     note: "catalog_check_required",
   },
   {
@@ -101,7 +101,7 @@ export const LM_GUIDE_DATABASE = [
     railLength_mm: null,
     material: "bearing_steel",
     application: "automation_axis",
-    catalogUrl: "https://www.boschrexroth.com/",
+    catalogUrl: "https://www.boschrexroth.com/en/us/products/industrial-solutions/linear-motion-technology/ball-rail-systems/",
     note: "catalog_check_required",
   },
   {

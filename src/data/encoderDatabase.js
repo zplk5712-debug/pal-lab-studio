@@ -17,7 +17,7 @@ export const ENCODER_DATABASE = [
     outerDiameter_mm: null,
     measuringLength_mm: null,
     application: "precision_servo_axis",
-    catalogUrl: "https://www.heidenhain.com/",
+    catalogUrl: "https://www.heidenhain.com/products/rotary-encoders/external/ern-400",
     note: "catalog_check_required",
   },
   {
@@ -38,7 +38,7 @@ export const ENCODER_DATABASE = [
     outerDiameter_mm: null,
     measuringLength_mm: null,
     application: "servo_feedback",
-    catalogUrl: "https://www.tamagawa-seiki.com/",
+    catalogUrl: "https://www.tamagawa-seiki.com/products/rotaryencoder/absolute-singleturn.html",
     note: "catalog_check_required",
   },
   {
@@ -59,7 +59,7 @@ export const ENCODER_DATABASE = [
     outerDiameter_mm: 36,
     measuringLength_mm: null,
     application: "industrial_network_axis",
-    catalogUrl: "https://www.posital.com/",
+    catalogUrl: "https://www.posital.com/en/products/absolute-encoders",
     note: "catalog_check_required",
   },
   {
@@ -80,7 +80,7 @@ export const ENCODER_DATABASE = [
     outerDiameter_mm: 58,
     measuringLength_mm: null,
     application: "general_industrial_feedback",
-    catalogUrl: "https://www.hengstler.com/",
+    catalogUrl: "https://www.hengstler.com/products/rotary-encoders/incremental-encoders/ri58",
     note: "catalog_check_required",
   },
   {
@@ -101,7 +101,7 @@ export const ENCODER_DATABASE = [
     outerDiameter_mm: 58,
     measuringLength_mm: null,
     application: "motion_control_feedback",
-    catalogUrl: "https://www.kuebler.com/",
+    catalogUrl: "https://www.kuebler.com/en/products/measurement/encoders/product-finder/product-details/K58I",
     note: "catalog_check_required",
   },
 ];

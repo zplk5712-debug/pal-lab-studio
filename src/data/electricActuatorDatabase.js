@@ -81,7 +81,7 @@ export const ELECTRIC_ACTUATOR_DATABASE = [
     motorIncluded: "yes_servo_motor_integrated",
     weight_kg: "catalog_check_required",
     application: "precision_slider_positioning",
-    catalogUrl: "https://www.intelligentactuator.com/",
+    catalogUrl: "https://www.intelligentactuator.com/rcp6-robo-cylinder-series/",
     note: "서보모터 일체형 슬라이더, 산업용 표준 전동 액추에이터",
   },
 ];

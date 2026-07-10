@@ -11,7 +11,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "yes",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "roughing_pressure_monitoring",
-    catalogUrl: "https://www.mdcprecision.com/",
+    catalogUrl: "https://www.mdcprecision.com/sections/thermocouple-gauge-tubes",
     note: "MDC 진공 측정 라인업. 러핑 압력 모니터링용, 정확한 모델번호는 카탈로그 확인 필요",
   },
   {
@@ -26,7 +26,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "yes",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "uhv_pressure_measurement",
-    catalogUrl: "https://www.mdcprecision.com/",
+    catalogUrl: "https://www.mdcprecision.com/categories/vacuum-measurements",
     note: "누드형 B-A 이온 게이지, 챔버 직결 UHV 측정. 정확한 모델번호는 카탈로그 확인 필요",
   },
   {
@@ -41,7 +41,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "yes",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "high_vacuum_measurement",
-    catalogUrl: "https://www.mdcprecision.com/",
+    catalogUrl: "https://www.mdcprecision.com/categories/vacuum-measurements",
     note: "유리관형 이온 게이지. 정확한 모델번호는 카탈로그 확인 필요",
   },
   {
@@ -56,7 +56,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "no",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "rough_vacuum_visual_check",
-    catalogUrl: "https://www.mdcprecision.com/",
+    catalogUrl: "https://www.mdcprecision.com/products/vacuum-measurement/bourdon-gauge",
     note: "기계식 다이얼 게이지, 전원 불필요. 벤트·러핑 상태 육안 확인용",
   },
   {
@@ -71,7 +71,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "optional",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "full_range_pressure_measurement",
-    catalogUrl: "https://www.pfeiffer-vacuum.com/",
+    catalogUrl: "https://www.pfeiffer-vacuum.com/global/en/products/vacuum-gauges",
     note: "피라니 + 콜드캐소드 복합 풀레인지 게이지, 대기압부터 UHV 초입까지 한 대로 측정",
   },
   {
@@ -86,7 +86,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "optional",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "roughing_backing_pressure",
-    catalogUrl: "https://www.edwardsvacuum.com/",
+    catalogUrl: "https://www.edwardsvacuum.com/en-us/vacuum-pumps/our-products/measurement-and-control/indirect-pressure-measurement-gauges",
     note: "액티브 피라니 게이지, 러핑·백킹 라인 표준",
   },
   {
@@ -101,7 +101,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "yes",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "xhv_uhv_pressure_measurement",
-    catalogUrl: "https://www.agilent.com/",
+    catalogUrl: "https://www.agilent.com/en/product/vacuum-technologies/vacuum-measurement/active-gauges",
     note: "누드형 B-A 게이지, XHV급 측정 하한",
   },
   {
@@ -116,7 +116,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "no_integrated_electronics",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "hv_uhv_pressure_measurement",
-    catalogUrl: "https://www.lesker.com/",
+    catalogUrl: "https://www.lesker.com/gauges/ionization-kjlc-354/part/kjlc354401ye",
     note: "전자장치 일체형 이온 게이지 모듈, 별도 컨트롤러 불필요",
   },
   {
@@ -191,7 +191,7 @@ export const VACUUM_GAUGE_DATABASE = [
     controllerRequired: "no",
     maxBakeoutTemp_C: "catalog_check_required",
     application: "gas_independent_absolute_pressure",
-    catalogUrl: "https://www.inficon.com/",
+    catalogUrl: "https://www.inficon.com/en/products/vacuum-gauge-and-controller/sky-cdg025d",
     note: "가스 종류 무관 절대압 측정, 공정압력 제어용",
   },
 ];

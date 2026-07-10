@@ -194,7 +194,7 @@ export const VACUUM_PUMP_DATABASE = [
     controllerIncluded: "integrated_controller",
     weight_kg: 25,
     application: "oil_free_roughing_backing",
-    catalogUrl: "https://www.edwardsvacuum.com/",
+    catalogUrl: "https://us.my.edwardsvacuum.com/en_US/USD/Catalog/Pumps/Dry-Scroll-Pumps/nXDSi-Scroll-Pumps/nXDS10i/p/A73601983",
     note: "무오일 스크롤 펌프 11.4 m³/h, 터보 백킹·러핑용 표준기",
   },
   {
@@ -212,7 +212,7 @@ export const VACUUM_PUMP_DATABASE = [
     controllerIncluded: "integrated_tc110",
     weight_kg: "catalog_check_required",
     application: "compact_high_vacuum_pumping",
-    catalogUrl: "https://www.pfeiffer-vacuum.com/",
+    catalogUrl: "https://www.pfeiffer-vacuum.com/global/en/products/vacuum-pumps/turbomolecular/hipace/",
     note: "소형 터보펌프, 분석장비·소형 챔버용",
   },
   {
@@ -230,7 +230,7 @@ export const VACUUM_PUMP_DATABASE = [
     controllerIncluded: "separate_tc400",
     weight_kg: "catalog_check_required",
     application: "large_chamber_high_vacuum",
-    catalogUrl: "https://www.pfeiffer-vacuum.com/",
+    catalogUrl: "https://www.pfeiffer-vacuum.com/global/en/product/hipace-700.html",
     note: "대용량 터보펌프, 대형 챔버·빔라인용",
   },
 ];

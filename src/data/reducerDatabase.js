@@ -14,7 +14,7 @@ export const REDUCER_DATABASE = [
     outputShaftDiameter_mm: "catalog_check_required",
     weight_kg: "catalog_check_required",
     application: "precision_positioning_gearhead",
-    catalogUrl: "https://www.harmonicdrive.net/",
+    catalogUrl: "https://www.harmonicdrive.net/products/component-sets/cup-type/csf-2a-lw",
     note: "하모닉 드라이브 컴포넌트 타입, 제로 백래시급",
   },
   {
@@ -32,7 +32,7 @@ export const REDUCER_DATABASE = [
     outputShaftDiameter_mm: "catalog_check_required",
     weight_kg: "catalog_check_required",
     application: "precision_positioning_gearhead",
-    catalogUrl: "https://www.harmonicdrive.net/",
+    catalogUrl: "https://www.harmonicdrive.net/products/component-sets/cup-type/csf-2a-lw",
     note: "하모닉 드라이브 컴포넌트 타입, 제로 백래시급",
   },
   {
@@ -50,7 +50,7 @@ export const REDUCER_DATABASE = [
     outputShaftDiameter_mm: "catalog_check_required",
     weight_kg: "catalog_check_required",
     application: "economy_planetary_gearhead",
-    catalogUrl: "https://www.neugart.com/",
+    catalogUrl: "https://www.neugart.com/en/gearboxes/economy-gearboxes/ple",
     note: "이코노미 유성감속기, 60mm 프레임",
   },
   {
@@ -68,7 +68,7 @@ export const REDUCER_DATABASE = [
     outputShaftDiameter_mm: "catalog_check_required",
     weight_kg: "catalog_check_required",
     application: "high_precision_planetary_gearhead",
-    catalogUrl: "https://www.apexdyna.com/",
+    catalogUrl: "https://apexdynamicsusa.com/ab-series-high-precision-planetary-gearboxes.html",
     note: "고정밀 유성감속기, 60mm 프레임",
   },
 ];
