@@ -26,6 +26,7 @@ const SimulatorResultPanel = memo(function SimulatorResultPanel({
   dutyCycle,
   avgPower,
   DEFAULT_MOTOR_IMAGE,
+  onSelectMotor,
 }) {
   if (!result) {
     return (
@@ -52,6 +53,8 @@ const SimulatorResultPanel = memo(function SimulatorResultPanel({
               <article
                 className={`recommend-item recommend-item--summary recommend-item--${product.recommendationTierKey}${product.isPlaceholder ? " recommend-item--placeholder" : ""}`}
                 key={`${product.recommendationTierKey}-${product.company}-${product.productName}`}
+                style={{ cursor: "pointer" }}
+                onClick={() => onSelectMotor && onSelectMotor(product)}
               >
                 <div className={`confidence-badge confidence-badge--${product.confidenceKey}`}>
                   신뢰도 {product.confidenceLabel}

@@ -249,7 +249,7 @@ function getKeySpecSummary(item, config) {
     .join(" / ");
 }
 
-export default function ProductDatabaseManager({ onBack, productDatabases, onUpdateProductDatabase }) {
+export default function ProductDatabaseManager({ onBack, productDatabases, onUpdateProductDatabase, selectedMotor }) {
   const [activeCategory, setActiveCategory] = useState(PRODUCT_DB_CATEGORIES[0].id);
   const [activeTab, setActiveTab] = useState(PRODUCT_DB_CATEGORIES[0].tabs[0]);
   const [subCategoryFilter, setSubCategoryFilter] = useState("all");
@@ -260,6 +260,23 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
   const [sortDirection, setSortDirection] = useState("asc");
   const [expandedGroupKeys, setExpandedGroupKeys] = useState(() => new Set());
   const [allGroupsExpanded, setAllGroupsExpanded] = useState(false);
+
+  // 모션 설계 도우미에서 선택한 모터가 있으면 표시
+  useEffect(() => {
+    if (selectedMotor && selectedMotor.company && selectedMotor.productName) {
+      setActiveTab("motor");
+      setActiveCategory("motion");
+      setHasSelectedManually(true);
+      // 제조사와 모델명으로 해당 제품 찾기
+      const motorItems = productDatabases.motor ?? [];
+      const matchingMotor = motorItems.find((item) =>
+        item.manufacturer === selectedMotor.company && item.model === selectedMotor.productName
+      );
+      if (matchingMotor) {
+        setSelectedId(matchingMotor.id);
+      }
+    }
+  }, [selectedMotor, productDatabases.motor]);
 
   const config = PRODUCT_DB_CONFIG[activeTab];
   const currentCategory = PRODUCT_DB_CATEGORIES.find((category) => category.id === activeCategory);

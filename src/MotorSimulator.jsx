@@ -750,6 +750,10 @@ export default function MotorSimulator({ onBack, prefill }) {
             dutyCycle={dutyCycle}
             avgPower={avgPower}
             DEFAULT_MOTOR_IMAGE={DEFAULT_MOTOR_IMAGE}
+            onSelectMotor={(product) => {
+              // 카탈로그에서 해당 모터를 찾아서 표시
+              window.location.hash = `#/db/motor/${product.company}/${product.productName}`;
+            }}
           />
         </section>
         </div>

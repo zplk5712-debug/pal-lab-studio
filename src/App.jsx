@@ -230,6 +230,7 @@ const TOOLS = [
 export default function App() {
   const [page, setPage] = useState("home");
   const [motorPrefill, setMotorPrefill] = useState(null);
+  const [selectedMotorForCatalog, setSelectedMotorForCatalog] = useState(null);
   const [databaseReady, setDatabaseReady] = useState(false);
   const [productDatabases, setProductDatabases] = useState(() => {
     const initial = {};
@@ -313,6 +314,10 @@ export default function App() {
         <MotorSimulator
           onBack={() => { setMotorPrefill(null); setPage("home"); }}
           prefill={motorPrefill}
+          onSelectMotor={(product) => {
+            setSelectedMotorForCatalog(product);
+            setPage("db");
+          }}
         />
       </Suspense>
     );
@@ -333,9 +338,10 @@ export default function App() {
     return (
       <Suspense fallback={<PageLoader />}>
         <ProductDatabaseManager
-          onBack={() => setPage("home")}
+          onBack={() => { setSelectedMotorForCatalog(null); setPage("home"); }}
           productDatabases={productDatabases}
           onUpdateProductDatabase={updateProductDatabase}
+          selectedMotor={selectedMotorForCatalog}
         />
       </Suspense>
     );
