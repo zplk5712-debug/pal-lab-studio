@@ -368,6 +368,7 @@ export const MOTOR_MANUFACTURERS = [
   "Panasonic",
   "Faulhaber",
   "MISUMI",
+  "Fastech",
 ];
 
 export const MOTOR_TYPES = [

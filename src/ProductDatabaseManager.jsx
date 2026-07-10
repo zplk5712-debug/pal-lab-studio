@@ -609,12 +609,21 @@ export default function ProductDatabaseManager({ onBack, productDatabases, onUpd
                           tabIndex={0}
                           key={item.id}
                           className={`db-list-item${selectedItem?.id === item.id ? " is-selected" : ""}`}
-                          onClick={() => { setSelectedId(item.id); setHasSelectedManually(true); }}
+                          onClick={() => {
+                            setSelectedId(item.id);
+                            setHasSelectedManually(true);
+                            if (item.catalogUrl) {
+                              window.open(item.catalogUrl, '_blank');
+                            }
+                          }}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
                               setSelectedId(item.id);
                               setHasSelectedManually(true);
+                              if (item.catalogUrl) {
+                                window.open(item.catalogUrl, '_blank');
+                              }
                             }
                           }}
                         >
