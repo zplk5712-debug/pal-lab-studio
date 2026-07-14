@@ -257,6 +257,212 @@ function countAssemblyInstancesByUsageTree(text) {
   return quantityByName.size > 0 ? quantityByName : null;
 }
 
+// 소재명 텍스트(한글/영문)에서 소재 계열을 좁히기 위한 키워드 -> 후보 키 목록.
+// 밀도만으로는 애매한 경우(예: 강철 계열 여러 개가 밀도가 비슷함) 이 키워드로 우선순위를 정합니다.
+const MATERIAL_KEYWORD_GROUPS = [
+  [/연강|mild\s*steel|low\s*carbon/i, ["lowCarbonSteel", "carbonSteel"]],
+  [/합금강|alloy\s*steel/i, ["alloySteel"]],
+  [/공구강|tool\s*steel/i, ["toolSteel"]],
+  [/주철|cast\s*iron/i, ["castIron"]],
+  [/스테인|stainless/i, ["stainless430", "stainless304", "stainless316", "stainless310"]],
+  [/탄소강|steel|강철|스틸/i, ["carbonSteel", "lowCarbonSteel", "alloySteel"]],
+  [/알루미늄|알미늄|aluminum|aluminium/i, ["al6061", "al7075", "al5052", "al1050"]],
+  [/무산소동|ofhc/i, ["oxygenFreeCopper", "ofeCopper"]],
+  [/청동|bronze/i, ["bronze", "phosphorBronze"]],
+  [/황동|brass/i, ["brass"]],
+  [/구리|동|copper/i, ["copper", "oxygenFreeCopper"]],
+  [/티타늄|titanium/i, ["titaniumGr2", "titaniumGr5"]],
+  [/인코넬|inconel/i, ["inconel718", "inconel625"]],
+  [/모넬|monel/i, ["monel400"]],
+];
+
+function normalizePartName(name) {
+  return (name || "")
+    .replace(/[:_]\d+$/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function guessMaterialKey(materialText, densityGCm3) {
+  const text = (materialText || "").trim();
+  let keywordCandidates = null;
+
+  for (const [pattern, candidates] of MATERIAL_KEYWORD_GROUPS) {
+    if (pattern.test(text)) {
+      keywordCandidates = candidates;
+      break;
+    }
+  }
+
+  let densityMatches = [];
+
+  if (Number.isFinite(densityGCm3)) {
+    const targetKgM3 = densityGCm3 * 1000;
+    const tolerance = Math.max(30, targetKgM3 * 0.02);
+
+    densityMatches = MATERIAL_OPTIONS.filter(
+      (option) => Math.abs(option.densityKgM3 - targetKgM3) <= tolerance,
+    )
+      .map((option) => option.key)
+      .sort((a, b) => {
+        const da = Math.abs(MATERIAL_OPTIONS.find((o) => o.key === a).densityKgM3 - targetKgM3);
+        const db = Math.abs(MATERIAL_OPTIONS.find((o) => o.key === b).densityKgM3 - targetKgM3);
+        return da - db;
+      });
+  }
+
+  if (keywordCandidates && densityMatches.length > 0) {
+    const overlap = keywordCandidates.find((key) => densityMatches.includes(key));
+    if (overlap) {
+      return overlap;
+    }
+  }
+
+  if (densityMatches.length > 0) {
+    return densityMatches[0];
+  }
+
+  if (keywordCandidates) {
+    return keywordCandidates[0];
+  }
+
+  return null;
+}
+
+function extractMaterialHintsByName(text) {
+  const entities = parseStepEntities(text);
+
+  // property_definition id -> ["material" | "density", productDefinitionId]
+  const propertyKindById = new Map();
+
+  entities.forEach(({ type, args }, id) => {
+    if (type !== "PROPERTY_DEFINITION") {
+      return;
+    }
+
+    const strings = extractQuotedStrings(args);
+    const refs = extractRefIds(args);
+
+    if (strings.length < 2 || refs.length === 0) {
+      return;
+    }
+
+    const label = strings[1].trim().toLowerCase();
+
+    if (label === "material name") {
+      propertyKindById.set(id, ["material", refs[0]]);
+    } else if (label === "density of part") {
+      propertyKindById.set(id, ["density", refs[0]]);
+    }
+  });
+
+  // property_definition id -> representation id
+  const representationByProperty = new Map();
+
+  entities.forEach(({ type, args }, id) => {
+    if (type !== "PROPERTY_DEFINITION_REPRESENTATION") {
+      return;
+    }
+
+    const refs = extractRefIds(args);
+
+    if (refs.length >= 2) {
+      representationByProperty.set(refs[0], refs[1]);
+    }
+  });
+
+  // representation id -> first item ref (representations end with a context ref last)
+  const itemByRepresentation = new Map();
+
+  entities.forEach(({ type, args }, id) => {
+    if (type !== "REPRESENTATION") {
+      return;
+    }
+
+    const refs = extractRefIds(args);
+
+    if (refs.length >= 2) {
+      itemByRepresentation.set(id, refs[0]);
+    }
+  });
+
+  // productDefinitionId -> { materialText, densityGCm3 }
+  const hintsByProductDef = new Map();
+
+  propertyKindById.forEach(([kind, productDefId], propId) => {
+    const representationId = representationByProperty.get(propId);
+
+    if (representationId === undefined) {
+      return;
+    }
+
+    const itemId = itemByRepresentation.get(representationId);
+
+    if (itemId === undefined || !entities.has(itemId)) {
+      return;
+    }
+
+    const { type: itemType, args: itemArgs } = entities.get(itemId);
+
+    if (!hintsByProductDef.has(productDefId)) {
+      hintsByProductDef.set(productDefId, { materialText: "", densityGCm3: null });
+    }
+
+    const hint = hintsByProductDef.get(productDefId);
+
+    if (kind === "material" && itemType === "DESCRIPTIVE_REPRESENTATION_ITEM") {
+      const strings = extractQuotedStrings(itemArgs);
+
+      if (strings.length > 0) {
+        hint.materialText = decodeStepName(strings[0], "");
+      }
+    } else if (kind === "density" && itemType === "MEASURE_REPRESENTATION_ITEM") {
+      const valueMatch = itemArgs.match(
+        /POSITIVE_RATIO_MEASURE\s*\(\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)\s*\)/,
+      );
+
+      if (valueMatch) {
+        hint.densityGCm3 = Number(valueMatch[1]);
+      }
+    }
+  });
+
+  // productDefinitionId -> part name (이 파일들은 보통 PRODUCT_DEFINITION의 첫 문자열이
+  // 사람이 읽을 수 있는 부품명입니다)
+  const nameByProductDef = new Map();
+
+  entities.forEach(({ type, args }, id) => {
+    if (type !== "PRODUCT_DEFINITION") {
+      return;
+    }
+
+    const strings = extractQuotedStrings(args);
+
+    if (strings.length > 0) {
+      nameByProductDef.set(id, decodeStepName(strings[0], ""));
+    }
+  });
+
+  const hintsByName = new Map();
+
+  hintsByProductDef.forEach((hint, productDefId) => {
+    if (!hint.materialText && !Number.isFinite(hint.densityGCm3)) {
+      return;
+    }
+
+    const name = nameByProductDef.get(productDefId);
+
+    if (!name) {
+      return;
+    }
+
+    hintsByName.set(normalizePartName(name), hint);
+  });
+
+  return hintsByName;
+}
+
 function extractStepAssemblyParts(text) {
   const quantityByName = countAssemblyInstancesByUsageTree(text);
   let parts;
@@ -333,19 +539,24 @@ function parseStepText(text, fileName) {
 
   const partName = decodeStepName(productMatch?.[1], fileName.replace(/\.[^.]+$/, ""));
 
-  return {
-    partName,
-    volumeM3: volumeCandidatesM3.length > 0 ? Math.max(...volumeCandidatesM3) : null,
-    boundingBox: "",
-    unit: lengthUnit,
-    notes,
-    status:
-      volumeCandidatesM3.length > 0 ? "STEP 메타데이터 체적 인식 완료" : "STEP 메타데이터만 인식",
-    assemblyType: assembly.assemblyType,
-    partCount: assembly.uniquePartCount,
-    partItems: assembly.parts.map((part, index) => ({
+  const materialHintsByName = extractMaterialHintsByName(text);
+
+  const partItems = assembly.parts.map((part, index) => {
+    const hint = materialHintsByName.get(normalizePartName(part.name));
+    const guessedKey = hint ? guessMaterialKey(hint.materialText, hint.densityGCm3) : null;
+
+    if (guessedKey) {
+      const guessedLabel = MATERIAL_OPTIONS.find((option) => option.key === guessedKey)?.label ?? guessedKey;
+      const densityNote = Number.isFinite(hint.densityGCm3) ? `, 밀도 ${hint.densityGCm3.toFixed(2)} g/cm³` : "";
+      const textNote = hint.materialText ? ` ('${hint.materialText}')` : "";
+      notes.push(
+        `'${part.name}' 부품: STEP에서 소재 정보를 찾아 '${guessedLabel}'로 자동 설정했습니다${textNote}${densityNote}.`,
+      );
+    }
+
+    return {
       ...part,
-      materialKey: "al6061",
+      materialKey: guessedKey ?? "al6061",
       volumeMm3:
         assembly.assemblyType === "single" && volumeCandidatesM3[0]
           ? String(Math.round(m3ToMm3(volumeCandidatesM3[0])))
@@ -358,7 +569,20 @@ function parseStepText(text, fileName) {
           : canMapAssemblyVolumes && volumeCandidatesM3[index]
             ? "auto"
             : "none",
-    })),
+    };
+  });
+
+  return {
+    partName,
+    volumeM3: volumeCandidatesM3.length > 0 ? Math.max(...volumeCandidatesM3) : null,
+    boundingBox: "",
+    unit: lengthUnit,
+    notes,
+    status:
+      volumeCandidatesM3.length > 0 ? "STEP 메타데이터 체적 인식 완료" : "STEP 메타데이터만 인식",
+    assemblyType: assembly.assemblyType,
+    partCount: assembly.uniquePartCount,
+    partItems,
   };
 }
 

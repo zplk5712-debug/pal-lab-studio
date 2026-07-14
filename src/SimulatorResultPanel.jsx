@@ -221,6 +221,9 @@ const SimulatorResultPanel = memo(function SimulatorResultPanel({
               <div className="result-row"><span>가속 구간</span><strong>{formatNumber(result.motionProfile.t_acc, 2)} s</strong></div>
             </>
           )}
+          {result.vacuumForceN > 0 && (
+            <div className="result-row"><span>진공 포트 흡인력</span><strong>{formatNumber(result.vacuumForceN, 1)} N</strong></div>
+          )}
           <div className="result-row"><span>피크 추력 (가속 포함)</span><strong>{formatNumber(result.thrust, 1)} N</strong></div>
           <div className="result-row"><span>토크</span><strong>{formatNumber(result.torque, 2)} N·m</strong></div>
           <div className="result-row"><span>피크 토크</span><strong>{formatNumber(result.peakTorque, 2)} N·m</strong></div>
@@ -258,11 +261,22 @@ const SimulatorResultPanel = memo(function SimulatorResultPanel({
 
           {result.verticalAxisSummary && (() => {
             const va = result.verticalAxisSummary;
+            const dropRisk = va.gravityHoldN > 0 && va.vacuumForceN > 0
+              ? "전원차단 시 낙하 + 진공 흡인 방향 이탈 위험"
+              : va.gravityHoldN > 0
+                ? "전원차단 시 낙하 위험"
+                : "전원차단 시 진공 흡인 방향으로 밀려날 위험";
             return (
               <>
-                <div className="result-row result-row--subhead"><span>수직축 홀딩 토크</span></div>
+                <div className="result-row result-row--subhead"><span>정지 홀딩 토크{va.vacuumForceN > 0 ? " (중력 + 진공 흡인력)" : ""}</span></div>
+                {va.vacuumForceN > 0 && (
+                  <>
+                    <div className="result-row"><span>중력 정하중</span><strong>{formatNumber(va.gravityHoldN, 1)} N</strong></div>
+                    <div className="result-row"><span>진공 흡인력</span><strong>{formatNumber(va.vacuumForceN, 1)} N</strong></div>
+                  </>
+                )}
                 <div className="result-row"><span>정지 홀딩 토크</span><strong>{va.holdingTorqueNm.toFixed(3)} N·m</strong></div>
-                <div className="result-row"><span>브레이크 필요</span><strong className="text--danger">필수 — 볼스크류는 자기잠금 없음, 전원차단 시 낙하 위험</strong></div>
+                <div className="result-row"><span>브레이크 필요</span><strong className="text--danger">필수 — 볼스크류는 자기잠금 없음, {dropRisk}</strong></div>
               </>
             );
           })()}

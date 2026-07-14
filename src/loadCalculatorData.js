@@ -230,4 +230,6 @@ export const DEFAULT_LOAD_FORM = {
   modelUseCommonMaterial: true,
   modelAssemblyMaterialKey: "al6061",
   modelShowPartDetails: false,
+  modelFileObject: null,
+  modelSelectedPartNames: [],
 };

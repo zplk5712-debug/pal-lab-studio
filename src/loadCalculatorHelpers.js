@@ -18,6 +18,9 @@ export function createLoadItem(overrides = {}) {
     modelPartItems: (overrides.modelPartItems ?? DEFAULT_LOAD_FORM.modelPartItems).map((part) => ({
       ...part,
     })),
+    modelSelectedPartNames: [
+      ...(overrides.modelSelectedPartNames ?? DEFAULT_LOAD_FORM.modelSelectedPartNames),
+    ],
   };
 }
 

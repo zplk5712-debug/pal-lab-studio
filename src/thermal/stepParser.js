@@ -5,7 +5,7 @@
 
 let occtModule = null;
 
-async function loadOcct() {
+export async function loadOcct() {
   if (occtModule) return occtModule;
   const { default: initOcct } = await import("occt-import-js");
   occtModule = await initOcct({ locateFile: (f) => `/${f}` });

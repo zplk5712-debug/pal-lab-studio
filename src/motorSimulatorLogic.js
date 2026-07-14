@@ -11,6 +11,18 @@ export const EFFICIENCY = 0.9;
 export const SAFETY_FACTOR = 1.5;
 export const MOTOR_MAX_RPM = 3000;
 export const DEFAULT_MOTOR_IMAGE = motorPlaceholderUrl;
+export const ATMOSPHERIC_PRESSURE_PA = 101325; // 표준대기압 (진공측 압력은 대기압 대비 무시 가능한 수준으로 간주)
+
+// 진공 포트(벨로우즈·피드스루 등)를 통해 대기압이 미는 흡인력 F = ΔP × A
+export function getVacuumForceN(portDiameterMm) {
+  if (!Number.isFinite(portDiameterMm) || portDiameterMm <= 0) {
+    return 0;
+  }
+
+  const radiusM = portDiameterMm / 1000 / 2;
+  const areaM2 = Math.PI * radiusM * radiusM;
+  return ATMOSPHERIC_PRESSURE_PA * areaM2;
+}
 const STANDARD_GEAR_RATIOS = [1, 3, 5, 7, 10, 15, 20, 30, 50];
 // 별도 감속기 부착 시 사용할 수 있는 표준 감속비 목록
 const STANDARD_EXTERNAL_REDUCER_RATIOS = [3, 5, 10, 15, 20, 25, 30, 50];
@@ -52,6 +64,11 @@ export const ENVIRONMENT_OPTIONS = [
   { value: "vacuum", label: "진공 (헤드만 진공, 모터 외부)" },
   { value: "dust", label: "분진 환경" },
   { value: "high-temp", label: "고온 환경" },
+];
+
+export const VACUUM_FEEDTHROUGH_OPTIONS = [
+  { value: "bellows", label: "벨로우즈 리니어 피드스루 (모터가 축을 직선으로 밀어 넣음)" },
+  { value: "rotary", label: "자성유체 씰 로터리 커플링 (모터는 회전만 관통, 내부에서 직선 변환)" },
 ];
 
 export const PRECISION_OPTIONS = [
@@ -585,12 +602,17 @@ export function getInertiaCheck(weightKg, leadMm, matchedRatio, powerW, isSteppe
   return { J_load, J_load_referred, J_rotor, inertiaRatio, threshold, warnLevel, isStepper };
 }
 
-// ── 수직축 홀딩 토크 ─────────────────────────────────────────────────────────
-export function getVerticalAxisSummary(weightKg, leadMm) {
-  // 정지 홀딩 토크: 중력 하중을 유지하는 데 필요한 최소 모터 토크
-  const holdingTorqueNm = (weightKg * GRAVITY * (leadMm / 1000)) / (2 * Math.PI * EFFICIENCY);
+// ── 정지 홀딩 토크 (수직 중력 + 진공 흡인력) ───────────────────────────────────
+export function getVerticalAxisSummary(weightKg, leadMm, direction = "vertical", vacuumForceN = 0) {
+  // 정지 홀딩 토크: 중력 하중(수직일 때만) + 진공 흡인력(방향 무관, 정지 중에도 상시 작용)을 유지하는 데 필요한 최소 모터 토크
+  const gravityHoldN = direction === "vertical" ? weightKg * GRAVITY : 0;
+  const holdingForceN = gravityHoldN + vacuumForceN;
+  const holdingTorqueNm = (holdingForceN * (leadMm / 1000)) / (2 * Math.PI * EFFICIENCY);
   return {
     holdingTorqueNm,
+    holdingForceN,
+    gravityHoldN,
+    vacuumForceN,
     brakeRequired: true, // 볼스크류는 자기잠금 없음
   };
 }
@@ -782,7 +804,7 @@ function getStepperTorqueDerate(requiredRpm, maxOutputSpeed) {
   return Math.max(0.5, 1.0 - (ratio - 0.5));
 }
 
-function buildProductAnnotations(product, { direction, environment, precisionLevel, peakTorque, thrust, requiredRpm, requiredSpeedMm }) {
+function buildProductAnnotations(product, { direction, environment, precisionLevel, peakTorque, thrust, requiredRpm, requiredSpeedMm, vacuumFeedthroughType }) {
   const warnings = [];
   const isLinear = isDirectDriveProduct(product);
   const isStepper = isStepperMotorProduct(product);
@@ -836,6 +858,11 @@ function buildProductAnnotations(product, { direction, environment, precisionLev
     warnings.push("클린룸 — 오일리스 윤활재·저분진 씰 옵션 여부와 ISO 청정도 등급을 제조사에 사전 확인하세요.");
   } else if (environment === "vacuum") {
     warnings.push("진공 환경 (모터 외부 설치, 액추에이터 헤드만 진공 내부) — 볼스크류·LM가이드의 아웃가싱 규격(< 1×10⁻⁶ Pa·m³/s)과 진공용 그리스 사용 여부를 제조사에 확인하세요. 모터 자체가 진공 챔버 내부에 들어가는 경우는 '인베큠 모션(In-Vacuum Motor)' 사양이 별도 적용됩니다.");
+    if (vacuumFeedthroughType === "rotary") {
+      warnings.push("자성유체(페로플루이딕) 로터리 씰 커플링 — 대기압 흡인력은 고정 하우징이 받아내며 모터 추력에는 실리지 않습니다. 대신 씰 자체의 회전 마찰 토크(제조사 스펙, 보통 N·cm 단위)와 최대 허용 rpm을 별도로 확인하세요.");
+    } else {
+      warnings.push("벨로우즈 리니어 피드스루 — 흡인력 계산에는 포트(플랜지) 보어 지름이 아니라 벨로우즈의 '유효 단면적(effective area)' 기준 지름을 넣어야 정확합니다. 제조사 카탈로그에서 확인하세요.");
+    }
   } else if (environment === "dust") {
     warnings.push("분진 환경 — IP 보호 등급(IP54 이상 권장)과 씰 교체 주기를 확인하세요.");
   } else if (environment === "high-temp") {
@@ -870,6 +897,7 @@ export function getProductRecommendations({
   speedMm,
   environment = "general",
   precisionLevel = "general",
+  vacuumFeedthroughType = "bellows",
 }) {
   const verticalFactor = direction === "vertical" ? 1.3 : 1.0;
   const safeThrust = thrust * verticalFactor;
@@ -992,6 +1020,7 @@ export function getProductRecommendations({
     direction, environment, precisionLevel, peakTorque, thrust,
     requiredRpm: directRequiredRpm,
     requiredSpeedMm: directRequiredSpeedMm,
+    vacuumFeedthroughType,
   };
 
   const selectedProducts = [];
@@ -1082,6 +1111,7 @@ export function buildSimulationResult({
   direction,
   environment,
   precisionLevel,
+  vacuumFeedthroughType = "bellows",
   numericInputs,
   peakTorque,
   rpm,
@@ -1103,6 +1133,7 @@ export function buildSimulationResult({
     numericInputs.strokeMm !== null && numericInputs.speedMm !== null && numericInputs.speedMm > 0
       ? numericInputs.strokeMm / numericInputs.speedMm
       : null;
+  const vacuumForceN = numericInputs.vacuumForceN ?? 0;
 
   const hardWarnings = [];
   const softWarnings = [];
@@ -1168,6 +1199,18 @@ export function buildSimulationResult({
     softWarnings.push(`${getEnvironmentLabel(environment)} 조건을 고려해 후보를 우선 배치했습니다. 실제 주문 전 옵션 사양을 다시 확인하세요.`);
   }
 
+  if (vacuumForceN > 0) {
+    softWarnings.push(
+      `진공 포트 흡인력 ${formatNumber(vacuumForceN, 1)} N을 추력/토크 계산에 더했습니다 (표준대기압 101.3 kPa × 벨로우즈 유효 단면적 기준, 정지 중에도 상시 작용하는 정하중입니다).`,
+    );
+  }
+
+  if (environment === "vacuum" && vacuumFeedthroughType === "rotary") {
+    softWarnings.push(
+      "자성유체 씰 로터리 커플링은 대기압 흡인력이 모터 추력에 실리지 않아 추력/토크 계산에는 반영하지 않았습니다. 대신 씰 자체의 회전 마찰 토크와 최대 허용 rpm을 제조사 스펙으로 별도 확인하세요.",
+    );
+  }
+
   if (precisionLevel !== "general") {
     softWarnings.push(`${getPrecisionLabel(precisionLevel)} 기준으로 엔코더와 구동계 여유를 조금 더 보수적으로 잡았습니다.`);
   }
@@ -1196,8 +1239,8 @@ export function buildSimulationResult({
       : null;
 
   const verticalAxisSummary =
-    direction === "vertical" && numericInputs.weightKg && numericInputs.leadMm
-      ? getVerticalAxisSummary(numericInputs.weightKg, numericInputs.leadMm)
+    (direction === "vertical" || vacuumForceN > 0) && numericInputs.weightKg && numericInputs.leadMm
+      ? getVerticalAxisSummary(numericInputs.weightKg, numericInputs.leadMm, direction, vacuumForceN)
       : null;
 
   const positioningAccuracy = numericInputs.leadMm
@@ -1211,6 +1254,7 @@ export function buildSimulationResult({
     rpm,
     power,
     gearRatio,
+    vacuumForceN,
     status,
     statusKey,
     messages: [...hardWarnings, ...softWarnings],

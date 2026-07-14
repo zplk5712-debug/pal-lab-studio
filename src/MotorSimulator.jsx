@@ -17,6 +17,7 @@ import {
   PRECISION_OPTIONS,
   SAFETY_FACTOR,
   EFFICIENCY,
+  VACUUM_FEEDTHROUGH_OPTIONS,
   buildSimulationResult,
   calculateMotionProfile,
   fetchWebManualExtractions,
@@ -30,6 +31,7 @@ import {
   getRecommendedReducer,
   getSelectedScrewSpec,
   getSummaryRecommendations,
+  getVacuumForceN,
   normalizeDecimalInput,
   roundToDecimals,
   validateInputs,
@@ -84,6 +86,8 @@ export default function MotorSimulator({ onBack, prefill }) {
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [cyclesPerMin, setCyclesPerMin] = useState("");
   const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [vacuumPortDiameter, setVacuumPortDiameter] = useState("");
+  const [vacuumFeedthroughType, setVacuumFeedthroughType] = useState("bellows");
   const [calcHistory, setCalcHistory] = useState([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const historyRef = useRef(null);
@@ -104,6 +108,7 @@ export default function MotorSimulator({ onBack, prefill }) {
   const dMaxSpeed = useDebounced(maxSpeedInput, 200);
   const dMinSpeed = useDebounced(minSpeedInput, 200);
   const dTargetTime = useDebounced(targetTime, 200);
+  const dVacuumPortDiameter = useDebounced(vacuumPortDiameter, 200);
 
   const weightKg = useMemo(() => roundToDecimals(parseNumber(dWeight), 3), [dWeight]);
   const strokeMm = useMemo(() => parseNumber(dStroke), [dStroke]);
@@ -112,6 +117,12 @@ export default function MotorSimulator({ onBack, prefill }) {
     [speedMode, dSpeed, dMaxSpeed],
   );
   const targetTimeSec = useMemo(() => parseNumber(dTargetTime), [dTargetTime]);
+  const vacuumForceN = useMemo(
+    () => environment === "vacuum" && vacuumFeedthroughType === "bellows"
+      ? getVacuumForceN(parseNumber(dVacuumPortDiameter))
+      : 0,
+    [environment, vacuumFeedthroughType, dVacuumPortDiameter],
+  );
 
   const targetDrivenSpeedMm = useMemo(() =>
     strokeMm !== null && strokeMm > 0 && targetTimeSec !== null && targetTimeSec > 0
@@ -139,9 +150,10 @@ export default function MotorSimulator({ onBack, prefill }) {
   const previewPeakForceN = useMemo(() =>
     weightKg !== null
       ? weightKg * 9.81 * (direction === "vertical" ? 1.0 : 0.05) +
-        weightKg * (previewMotionProfile.accelerationMmS2 / 1000)
+        weightKg * (previewMotionProfile.accelerationMmS2 / 1000) +
+        vacuumForceN
       : null,
-    [weightKg, direction, previewMotionProfile],
+    [weightKg, direction, previewMotionProfile, vacuumForceN],
   );
   const ballScrewRecommendation = useMemo(
     () => getRecommendedBallScrew(
@@ -173,8 +185,9 @@ export default function MotorSimulator({ onBack, prefill }) {
     targetDrivenSpeedMm,
     leadMm: appliedLeadMm,
     customLeadRequired: detailMode && selectedScrewSpec.value === "CUSTOM",
+    vacuumForceN,
   }), [speedMode, direction, weightKg, inputSpeedMm, designSpeedMm, dMinSpeed, dMaxSpeed,
-    strokeMm, targetTimeSec, targetDrivenSpeedMm, appliedLeadMm, detailMode, selectedScrewSpec]);
+    strokeMm, targetTimeSec, targetDrivenSpeedMm, appliedLeadMm, detailMode, selectedScrewSpec, vacuumForceN]);
 
   const summaryRecommendations = useMemo(
     () => result?.summaryRecommendations ?? getSummaryRecommendations(result?.productRecommendations ?? []),
@@ -282,11 +295,11 @@ export default function MotorSimulator({ onBack, prefill }) {
     const motionProfile = calculateMotionProfile(numericInputs.strokeMm, numericInputs.speedMm, numericInputs.targetTimeSec);
     const accelMpS2 = motionProfile.accelerationMmS2 / 1000; // mm/s² → m/s²
 
-    // 피크 추력 = 정하중 + 가속 구간 동하중
+    // 피크 추력 = 정하중 + 가속 구간 동하중 + 진공 흡인력(방향 무관 상시 정하중)
     const frictionLoad = direction === "vertical" ? 0 : numericInputs.weightKg * GRAVITY * 0.05; // LM가이드 마찰 μ=0.05
     const gravityLoad = direction === "vertical" ? numericInputs.weightKg * GRAVITY : 0;
     const accelerationLoad = numericInputs.weightKg * accelMpS2;
-    const thrust = gravityLoad + frictionLoad + accelerationLoad; // 동적 피크 추력 (N)
+    const thrust = gravityLoad + frictionLoad + accelerationLoad + numericInputs.vacuumForceN; // 동적 피크 추력 (N)
 
     const torque = (thrust * leadMeters) / (2 * Math.PI * EFFICIENCY);
     const peakTorque = torque * SAFETY_FACTOR;
@@ -312,6 +325,7 @@ export default function MotorSimulator({ onBack, prefill }) {
       speedMm: numericInputs.speedMm,
       environment,
       precisionLevel,
+      vacuumFeedthroughType,
     };
 
     const productRecommendations = getProductRecommendations(recommendationParams);
@@ -320,6 +334,7 @@ export default function MotorSimulator({ onBack, prefill }) {
       direction,
       environment,
       precisionLevel,
+      vacuumFeedthroughType,
       numericInputs: { ...numericInputs, motionProfile },
       designPower,
       peakTorque,
@@ -368,6 +383,7 @@ export default function MotorSimulator({ onBack, prefill }) {
             direction,
             environment,
             precisionLevel,
+            vacuumFeedthroughType,
             numericInputs: { ...numericInputs, motionProfile },
             designPower,
             peakTorque,
@@ -410,6 +426,8 @@ export default function MotorSimulator({ onBack, prefill }) {
     setResult(null);
     setCyclesPerMin("");
     setIsRoundTrip(false);
+    setVacuumPortDiameter("");
+    setVacuumFeedthroughType("bellows");
     setWebRecommendations([]);
     setWebManuals([]);
     setWebCandidateProducts([]);
@@ -631,7 +649,17 @@ export default function MotorSimulator({ onBack, prefill }) {
 
                 <label className="field">
                   <span>환경 조건</span>
-                  <select value={environment} onChange={(event) => setEnvironment(event.target.value)}>
+                  <select
+                    value={environment}
+                    onChange={(event) => {
+                      const nextEnvironment = event.target.value;
+                      setEnvironment(nextEnvironment);
+                      if (nextEnvironment !== "vacuum") {
+                        setVacuumPortDiameter("");
+                        setVacuumFeedthroughType("bellows");
+                      }
+                    }}
+                  >
                     {ENVIRONMENT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -639,6 +667,50 @@ export default function MotorSimulator({ onBack, prefill }) {
                     ))}
                   </select>
                 </label>
+
+                {environment === "vacuum" ? (
+                  <label className="field">
+                    <span>진공 관통 방식</span>
+                    <select
+                      value={vacuumFeedthroughType}
+                      onChange={(event) => setVacuumFeedthroughType(event.target.value)}
+                    >
+                      {VACUUM_FEEDTHROUGH_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <small className="field-help">
+                      벨로우즈 리니어는 흡인력이 모터 추력에 그대로 실리고, 로터리 커플링은 흡인력이 고정 하우징이 받아내는 대신 씰 마찰 토크를 별도 확인해야 합니다.
+                    </small>
+                  </label>
+                ) : null}
+
+                {environment === "vacuum" && vacuumFeedthroughType === "bellows" ? (
+                  <label className="field">
+                    <span>벨로우즈 유효 단면 지름 (mm)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={vacuumPortDiameter}
+                      onChange={(event) => setVacuumPortDiameter(event.target.value)}
+                      placeholder="예: 30"
+                    />
+                    <small className="field-help">
+                      플랜지 보어 지름이 아니라 벨로우즈의 '유효 단면적' 기준 지름입니다(제조사 카탈로그 확인). 대기압이 이 단면을 미는 흡인력을 표준대기압(101.3 kPa) 기준으로 역산해 추력/토크 계산에 더합니다.
+                      {vacuumForceN > 0 && ` 현재 추정 흡인력: 약 ${formatNumber(vacuumForceN, 1)} N`}
+                    </small>
+                  </label>
+                ) : null}
+
+                {environment === "vacuum" && vacuumFeedthroughType === "rotary" ? (
+                  <div className="detail-static">
+                    <span>흡인력 반영</span>
+                    <strong>추력 계산에 미반영 (고정 하우징이 부담) — 씰 회전 마찰 토크는 제조사 스펙 확인 필요</strong>
+                  </div>
+                ) : null}
 
                 <label className="field">
                   <span>모터 종류</span>

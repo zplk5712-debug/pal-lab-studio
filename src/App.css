@@ -3710,7 +3710,7 @@
 
 .load-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 0.85fr) minmax(420px, 1.15fr);
+  grid-template-columns: minmax(300px, 0.55fr) minmax(480px, 1.45fr);
   gap: 18px;
   align-items: start;
 }
@@ -4049,6 +4049,108 @@
   color: #92400e;
 }
 
+.load-part-editor.is-selected {
+  border-color: rgba(249, 115, 22, 0.65);
+  background: rgba(255, 247, 237, 0.95);
+}
+
+.load-model-viewer-box {
+  display: grid;
+  gap: 8px;
+}
+
+.load-model-viewer {
+  display: grid;
+  gap: 6px;
+}
+
+.load-model-viewer canvas {
+  display: block;
+  width: 100%;
+  height: 65vh;
+  min-height: 480px;
+  max-height: 860px;
+  border-radius: 10px;
+  cursor: grab;
+}
+
+.load-model-viewer-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 4px 2px;
+}
+
+.load-model-viewer-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.load-model-viewer-legend__swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.load-model-viewer--status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  color: rgba(224, 242, 254, 0.88);
+  font-size: 15px;
+  text-align: center;
+  padding: 12px;
+}
+
+.load-model-viewer__hint {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.load-bulk-material-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.load-bulk-material-bar__count {
+  font-weight: 700;
+  color: var(--text-strong);
+  font-size: 15px;
+}
+
+.load-bulk-material-bar__select {
+  flex: 1;
+  min-width: 200px;
+}
+
+.load-model-viewer-panel-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.load-model-viewer-pointer {
+  font-style: italic;
+}
+
+.load-selected-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 90px;
+  overflow-y: auto;
+}
+
 .load-highlight-card {
   display: grid;
   gap: 6px;
@@ -4187,7 +4289,7 @@
   }
 
   .load-grid {
-    grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1fr);
+    grid-template-columns: minmax(280px, 0.65fr) minmax(0, 1.35fr);
   }
 
   .load-grid .load-card:last-child {

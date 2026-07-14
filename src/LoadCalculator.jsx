@@ -26,6 +26,7 @@ import {
   getItemTitle,
   getShapeOption,
 } from "./loadCalculatorHelpers";
+import LoadModelViewer from "./LoadModelViewer";
 
 function renderMaterialOptionGroups() {
   return MATERIAL_GROUP_OPTIONS.map((group) => (
@@ -80,6 +81,56 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                     }
                   : part,
               ),
+            }
+          : item,
+      ),
+    );
+    setResult(null);
+  }
+
+  function toggleSelectedPart(itemId, partName) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              modelSelectedPartNames: item.modelSelectedPartNames.includes(partName)
+                ? item.modelSelectedPartNames.filter((name) => name !== partName)
+                : [...item.modelSelectedPartNames, partName],
+            }
+          : item,
+      ),
+    );
+  }
+
+  function selectAllParts(itemId) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === itemId
+          ? { ...item, modelSelectedPartNames: item.modelPartItems.map((part) => part.name) }
+          : item,
+      ),
+    );
+  }
+
+  function clearSelectedParts(itemId) {
+    setItems((current) =>
+      current.map((item) => (item.id === itemId ? { ...item, modelSelectedPartNames: [] } : item)),
+    );
+  }
+
+  function applyMaterialToSelectedParts(itemId, materialKey) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              modelPartItems: item.modelPartItems.map((part) =>
+                item.modelSelectedPartNames.includes(part.name) ? { ...part, materialKey } : part,
+              ),
+              // 적용 후 선택을 비워야, 다음에 새 부품을 고를 때 이전에 이미 소재를
+              // 적용한 부품까지 같이 딸려가서 덮어써지는 걸 막을 수 있습니다.
+              modelSelectedPartNames: [],
             }
           : item,
       ),
@@ -189,6 +240,8 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                           materialKey: useCommonMaterial ? commonMaterialKey : part.materialKey,
                         }))
                       : parsed.modelPartItems,
+                  modelFileObject: file,
+                  modelSelectedPartNames: [],
                 };
               })()
             : item,
@@ -227,6 +280,8 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                 modelUseCommonMaterial: true,
                 modelAssemblyMaterialKey: item.modelAssemblyMaterialKey || item.materialKey,
                 modelShowPartDetails: false,
+                modelFileObject: null,
+                modelSelectedPartNames: [],
               }
             : item,
         ),
@@ -817,6 +872,13 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                               </div>
                             )}
 
+                            {item.modelFileObject ? (
+                              <p className="field-help load-model-viewer-pointer">
+                                3D 형상을 보면서 부품을 선택하려면 오른쪽(모바일에서는 아래) 합산
+                                결과 패널 상단을 확인하세요.
+                              </p>
+                            ) : null}
+
                             {visibleAssemblyParts.length > 0 ? (
                               <div className="load-part-editor-list">
                                 {visibleAssemblyParts.map((part) => {
@@ -829,10 +891,22 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                                       ? "직접 입력 체적"
                                       : "자동 체적 없음";
 
+                                const isPartSelected = item.modelSelectedPartNames.includes(part.name);
+
                                 return (
-                                  <div className="load-part-editor" key={`${item.id}-${part.name}`}>
+                                  <div
+                                    className={`load-part-editor${isPartSelected ? " is-selected" : ""}`}
+                                    key={`${item.id}-${part.name}`}
+                                  >
                                     <div className="load-part-editor__meta">
-                                      <strong>{part.name}</strong>
+                                      <label className="check-field">
+                                        <input
+                                          type="checkbox"
+                                          checked={isPartSelected}
+                                          onChange={() => toggleSelectedPart(item.id, part.name)}
+                                        />
+                                        <strong>{part.name}</strong>
+                                      </label>
                                       <span>{formatLoadNumber(part.count, 0)}개 / 조립 1세트</span>
                                     </div>
                                     <div className="load-part-editor__status">
@@ -1032,6 +1106,78 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
 
         <section className="card load-card">
           <h2>합산 결과</h2>
+
+          {items.some(
+            (item) => item.inputMode === "model" && item.modelAssemblyType === "assembly" && item.modelFileObject,
+          ) ? (
+            <div className="load-model-viewer-panel-list">
+              {items.map((item, index) =>
+                item.inputMode === "model" && item.modelAssemblyType === "assembly" && item.modelFileObject ? (
+                  <div className="note-box load-model-viewer-box" key={`${item.id}-viewer`}>
+                    <h3>{getItemTitle(index, item)} · 형상으로 부품 선택하기</h3>
+                    <p className="field-help">
+                      3D 형상에서 부품을 클릭하면 여러 개를 한 번에 선택할 수 있습니다. 선택한
+                      뒤 소재를 골라 한 번에 적용하세요.
+                    </p>
+                    <LoadModelViewer
+                      file={item.modelFileObject}
+                      selectedNames={new Set(item.modelSelectedPartNames)}
+                      onToggleSelect={(partName) => toggleSelectedPart(item.id, partName)}
+                      partMaterialKeys={Object.fromEntries(
+                        item.modelPartItems.map((part) => [part.name, part.materialKey]),
+                      )}
+                    />
+                    <div className="load-bulk-material-bar">
+                      <span className="load-bulk-material-bar__count">
+                        선택됨 {formatLoadNumber(item.modelSelectedPartNames.length, 0)}개
+                      </span>
+                      <button
+                        type="button"
+                        className="ghost-button ghost-button--small"
+                        onClick={() => selectAllParts(item.id)}
+                      >
+                        전체 선택
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-button ghost-button--small"
+                        onClick={() => clearSelectedParts(item.id)}
+                      >
+                        선택 해제
+                      </button>
+                      <select
+                        className="load-bulk-material-bar__select"
+                        disabled={item.modelSelectedPartNames.length === 0}
+                        value=""
+                        onChange={(event) => {
+                          if (!event.target.value) {
+                            return;
+                          }
+                          applyMaterialToSelectedParts(item.id, event.target.value);
+                          event.target.value = "";
+                        }}
+                      >
+                        <option value="" disabled>
+                          선택 부품에 적용할 소재...
+                        </option>
+                        {renderMaterialOptionGroups()}
+                      </select>
+                    </div>
+                    {item.modelSelectedPartNames.length > 0 ? (
+                      <div className="load-selected-chip-row">
+                        {item.modelSelectedPartNames.map((name) => (
+                          <span className="load-item-chip" key={`${item.id}-selected-${name}`}>
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null,
+              )}
+            </div>
+          ) : null}
+
           {result ? (
             <div className="result load-result">
               <div className="status status--ok">합산 계산 완료</div>
