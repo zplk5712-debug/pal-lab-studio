@@ -5,6 +5,7 @@ import {
   MATERIAL_GROUP_OPTIONS,
   MAX_MODEL_FILE_SIZE_BYTES,
   MAX_MODEL_FILE_SIZE_MB,
+  MIXED_MATERIAL_KEY,
   MODEL_FILE_EXTENSIONS,
   SHAPE_OPTIONS,
 } from "./loadCalculatorData";
@@ -139,6 +140,10 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
   }
 
   function updateAssemblyMaterial(itemId, value) {
+    // "다양함"을 다시 선택하면 공통 소재 적용을 끄고 부품별 소재를 그대로 둡니다.
+    // 실제 소재를 선택하면 그 즉시 전체 부품에 적용합니다.
+    const isMixed = value === MIXED_MATERIAL_KEY;
+
     setItems((current) =>
       current.map((item) => {
         if (item.id !== itemId) {
@@ -147,12 +152,15 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
 
         return {
           ...item,
-          materialKey: value,
+          materialKey: isMixed ? item.materialKey : value,
           modelAssemblyMaterialKey: value,
-          modelPartItems: item.modelPartItems.map((part) => ({
-            ...part,
-            materialKey: item.modelUseCommonMaterial ? value : part.materialKey,
-          })),
+          modelUseCommonMaterial: isMixed ? false : true,
+          modelPartItems: isMixed
+            ? item.modelPartItems
+            : item.modelPartItems.map((part) => ({
+                ...part,
+                materialKey: value,
+              })),
         };
       }),
     );
@@ -167,13 +175,19 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
         }
 
         if (key === "modelUseCommonMaterial") {
+          const commonMaterialKey =
+            item.modelAssemblyMaterialKey && item.modelAssemblyMaterialKey !== MIXED_MATERIAL_KEY
+              ? item.modelAssemblyMaterialKey
+              : item.materialKey;
+
           return {
             ...item,
             modelUseCommonMaterial: value,
+            modelAssemblyMaterialKey: value ? commonMaterialKey : item.modelAssemblyMaterialKey,
             modelPartItems: value
               ? item.modelPartItems.map((part) => ({
                   ...part,
-                  materialKey: item.modelAssemblyMaterialKey || item.materialKey,
+                  materialKey: commonMaterialKey,
                 }))
               : item.modelPartItems,
           };
@@ -220,24 +234,39 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
         current.map((item) =>
           item.id === itemId
             ? (() => {
-                const commonMaterialKey = item.modelAssemblyMaterialKey || item.materialKey || "al6061";
-                const useCommonMaterial = item.modelUseCommonMaterial ?? true;
+                const fallbackMaterialKey = item.modelAssemblyMaterialKey && item.modelAssemblyMaterialKey !== MIXED_MATERIAL_KEY
+                  ? item.modelAssemblyMaterialKey
+                  : item.materialKey || "al6061";
+                const hasAutoDetectedMaterial =
+                  Array.isArray(parsed.modelNotes) &&
+                  parsed.modelNotes.some(
+                    (note) => typeof note === "string" && note.includes("자동 설정했습니다"),
+                  );
+                const isFirstUpload = !item.modelFileObject;
+                const useCommonMaterial = isFirstUpload
+                  ? !hasAutoDetectedMaterial
+                  : (item.modelUseCommonMaterial ?? true);
+                // 처음 업로드했고 소재가 자동 인식됐다면, 공통 소재 칸에는 특정 소재(예: 알루미늄)를
+                // 미리 지정해두지 않고 "다양함"으로 비워둡니다. 실제 적용은 사용자가 직접 선택할 때만 합니다.
+                const displayedAssemblyMaterialKey =
+                  isFirstUpload && hasAutoDetectedMaterial ? MIXED_MATERIAL_KEY : fallbackMaterialKey;
 
                 return {
                   ...item,
                   ...parsed,
                   materialKey:
                     parsed.modelAssemblyType === "assembly"
-                      ? commonMaterialKey
+                      ? fallbackMaterialKey
                       : parsed.modelPartItems[0]?.materialKey ?? item.materialKey,
-                  modelAssemblyMaterialKey: commonMaterialKey,
+                  modelAssemblyMaterialKey:
+                    parsed.modelAssemblyType === "assembly" ? displayedAssemblyMaterialKey : fallbackMaterialKey,
                   modelUseCommonMaterial: parsed.modelAssemblyType === "assembly" ? useCommonMaterial : true,
                   modelShowPartDetails: false,
                   modelPartItems:
                     parsed.modelAssemblyType === "assembly"
                       ? parsed.modelPartItems.map((part) => ({
                           ...part,
-                          materialKey: useCommonMaterial ? commonMaterialKey : part.materialKey,
+                          materialKey: useCommonMaterial ? fallbackMaterialKey : part.materialKey,
                         }))
                       : parsed.modelPartItems,
                   modelFileObject: file,
@@ -439,9 +468,10 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                 const selectedShape = getShapeOption(item.shape);
                 const selectedMaterial = getMaterialOption(item.materialKey);
                 const isLoading = loadingIds.includes(item.id);
-                const assemblyMaterial = getMaterialOption(
-                  item.modelAssemblyMaterialKey || item.materialKey,
-                );
+                const isAssemblyMaterialMixed = item.modelAssemblyMaterialKey === MIXED_MATERIAL_KEY;
+                const assemblyMaterial = isAssemblyMaterialMixed
+                  ? null
+                  : getMaterialOption(item.modelAssemblyMaterialKey || item.materialKey);
                 const detectedVolumeText =
                   item.modelDetectedVolumeM3 !== null
                     ? `${formatLoadNumber(item.modelDetectedVolumeM3, 6)} m³`
@@ -807,11 +837,13 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                                     updateAssemblyMaterial(item.id, event.target.value)
                                   }
                                 >
+                                  <option value={MIXED_MATERIAL_KEY}>다양함(부품별 소재 자동 인식됨)</option>
                                   {renderMaterialOptionGroups()}
                                 </select>
                                 <p className="field-help">
-                                  현재 공통 소재 밀도{" "}
-                                  {formatLoadNumber(assemblyMaterial.densityKgM3, 0)} kg/m³
+                                  {isAssemblyMaterialMixed
+                                    ? "소재를 선택하면 그 즉시 모든 부품에 적용됩니다. 지금은 부품별로 인식된 소재를 그대로 사용합니다."
+                                    : `현재 공통 소재 밀도 ${formatLoadNumber(assemblyMaterial.densityKgM3, 0)} kg/m³`}
                                 </p>
                                 {itemErrors.modelAssemblyMaterialKey ? (
                                   <p className="error">{itemErrors.modelAssemblyMaterialKey}</p>

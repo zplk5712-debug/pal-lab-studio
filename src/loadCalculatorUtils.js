@@ -1,4 +1,4 @@
-import { MATERIAL_OPTIONS, SHAPE_OPTIONS } from "./loadCalculatorData";
+import { MATERIAL_OPTIONS, MIXED_MATERIAL_KEY, SHAPE_OPTIONS } from "./loadCalculatorData";
 import { GRAVITY, parseNumber as parsePositiveNumber } from "./sharedUtils";
 
 const MM3_PER_M3 = 1_000_000_000;
@@ -264,7 +264,6 @@ const MATERIAL_KEYWORD_GROUPS = [
   [/합금강|alloy\s*steel/i, ["alloySteel"]],
   [/공구강|tool\s*steel/i, ["toolSteel"]],
   [/주철|cast\s*iron/i, ["castIron"]],
-  [/스테인|stainless/i, ["stainless430", "stainless304", "stainless316", "stainless310"]],
   [/탄소강|steel|강철|스틸/i, ["carbonSteel", "lowCarbonSteel", "alloySteel"]],
   [/알루미늄|알미늄|aluminum|aluminium/i, ["al6061", "al7075", "al5052", "al1050"]],
   [/무산소동|ofhc/i, ["oxygenFreeCopper", "ofeCopper"]],
@@ -286,6 +285,15 @@ function normalizePartName(name) {
 
 function guessMaterialKey(materialText, densityGCm3) {
   const text = (materialText || "").trim();
+
+  // 스테인리스는 모델링 프로그램의 소재 목록에 정확한 등급이 없어서 다른 등급으로 저장되는
+  // 경우가 많고, 등급 표기 방식도 제각각이라 텍스트만으로 신뢰하기 어렵습니다. 그래서 STEP에
+  // "스테인리스/stainless"라고만 적혀 있으면 무조건 가장 흔한 304로 지정합니다. 316 등 다른
+  // 등급이 필요하면 하중 계산 화면에서 직접 다시 지정하면 됩니다.
+  if (/스테인|stainless/i.test(text)) {
+    return "stainless304";
+  }
+
   let keywordCandidates = null;
 
   for (const [pattern, candidates] of MATERIAL_KEYWORD_GROUPS) {
@@ -737,7 +745,7 @@ export function validateLoadForm(form) {
       }
 
       if (form.modelUseCommonMaterial) {
-        if (!form.modelAssemblyMaterialKey) {
+        if (!form.modelAssemblyMaterialKey || form.modelAssemblyMaterialKey === MIXED_MATERIAL_KEY) {
           errors.modelAssemblyMaterialKey = "공통 소재를 선택해 주세요.";
         }
       }
@@ -884,7 +892,11 @@ export function calculateLoadResult(form) {
   const isAssemblyModel = form.inputMode === "model" && form.modelAssemblyType === "assembly";
 
   if (isAssemblyModel) {
-    const commonMaterial = getMaterialOption(form.modelAssemblyMaterialKey || form.materialKey);
+    const commonMaterial = getMaterialOption(
+      form.modelAssemblyMaterialKey && form.modelAssemblyMaterialKey !== MIXED_MATERIAL_KEY
+        ? form.modelAssemblyMaterialKey
+        : form.materialKey,
+    );
     const useCommonMaterial = Boolean(form.modelUseCommonMaterial);
 
     const partBreakdown = form.modelPartItems.map((part) => {

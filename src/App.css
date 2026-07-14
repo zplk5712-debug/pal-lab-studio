@@ -4074,6 +4074,28 @@
   cursor: grab;
 }
 
+.load-model-viewer-view-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 2px 0;
+}
+
+.load-model-viewer-view-buttons button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.65);
+  color: rgba(224, 242, 254, 0.9);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.load-model-viewer-view-buttons button:hover {
+  border-color: rgba(125, 211, 252, 0.6);
+  background: rgba(15, 23, 42, 0.9);
+}
+
 .load-model-viewer-legend {
   display: flex;
   flex-wrap: wrap;
@@ -4124,7 +4146,7 @@
 
 .load-bulk-material-bar__count {
   font-weight: 700;
-  color: var(--text-strong);
+  color: rgba(224, 242, 254, 0.92);
   font-size: 15px;
 }
 

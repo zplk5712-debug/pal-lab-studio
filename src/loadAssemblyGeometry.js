@@ -47,27 +47,48 @@ function computeBBox(parts) {
   return bbox ?? { x: [0, 1], y: [0, 1], z: [0, 1] };
 }
 
+// occt-import-js는 linearDeflectionType을 지정하지 않으면 기본값이 "bounding_box_ratio"라서,
+// linearDeflection 값이 mm가 아니라 "전체 조립품 바운딩박스 크기의 비율"로 해석됩니다. 이걸
+// 모르고 mm 값처럼 0.6~3을 넘겼더니, 큰 조립품(수백~수천 mm)에서는 이 비율이 실제로는 수십~
+// 수백 mm짜리 허용 오차가 되어버려 볼트머리 같은 작은 원이 사각/마름모로 뭉개졌습니다.
+// linearDeflectionType을 "absolute_value"로 명시해야 mm 단위 그대로 적용됩니다.
+// angularDeflection(각도 편차)은 부품 크기와 무관하게 항상 일정한 각도 해상도를 유지하므로,
+// 이 값을 낮게 유지하면 조립품이 아무리 크더라도 작은 구멍/원기둥까지 둥글게 보입니다.
+const QUALITY_TIERS = [
+  { linearDeflection: 0.1, angularDeflection: 0.25, linearDeflectionType: "absolute_value", linearUnit: "millimeter" },
+  { linearDeflection: 0.4, angularDeflection: 0.3, linearDeflectionType: "absolute_value", linearUnit: "millimeter" },
+  { linearDeflection: 1, angularDeflection: 0.35, linearDeflectionType: "absolute_value", linearUnit: "millimeter" },
+];
+
+// 클릭 선택용 메쉬는 부품별로 별도 지오메트리를 합치는 방식(LoadModelViewer)으로 드로우콜을
+// 최소화해두었기 때문에, 여기서는 삼각형이 실제로 너무 많을 때만(= 화면이 느려질 만큼 무거울
+// 때만) 한 단계 거칠게 재시도합니다. 파일 용량이 아니라 실제 생성된 삼각형 수로 판단합니다.
+const MAX_TRIANGLES_BEFORE_RETRY = 500_000;
+
+function countTriangles(result) {
+  return (result.meshes ?? []).reduce((sum, mesh) => sum + (mesh.index?.array?.length ?? 0) / 3, 0);
+}
+
 export async function parseStepPartsForViewer(arrayBuffer) {
   const occt = await loadOcct();
 
-  // 이 뷰어는 부품 선택(클릭)용이라 정밀도보다 삼각형 수를 줄이는 게 더 중요합니다.
-  // 값이 낮을수록(정밀) 부품이 많은 조립품에서 클릭 반응(레이캐스팅)이 느려집니다.
-  const FINE = { linearDeflection: 1.2, angularDeflection: 0.6 };
-  const COARSE = { linearDeflection: 3, angularDeflection: 1 };
-
   let result = null;
 
-  try {
-    result = occt.ReadStepFile(new Uint8Array(arrayBuffer), FINE);
-  } catch {
-    result = null;
-  }
+  for (const quality of QUALITY_TIERS) {
+    let attempt = null;
 
-  if (!result?.success) {
     try {
-      result = occt.ReadStepFile(new Uint8Array(arrayBuffer), COARSE);
+      attempt = occt.ReadStepFile(new Uint8Array(arrayBuffer), quality);
     } catch {
-      result = null;
+      attempt = null;
+    }
+
+    if (attempt?.success) {
+      result = attempt;
+
+      if (countTriangles(attempt) <= MAX_TRIANGLES_BEFORE_RETRY) {
+        break;
+      }
     }
   }
 

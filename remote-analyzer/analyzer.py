@@ -105,9 +105,6 @@ MATERIAL_KEYWORD_GROUPS = [
     (re.compile(r"합금강|alloy\s*steel"), ["alloySteel"]),
     (re.compile(r"공구강|tool\s*steel"), ["toolSteel"]),
     (re.compile(r"주철|cast\s*iron"), ["castIron"]),
-    (re.compile(r"스테인|stainless"), [
-        "stainless430", "stainless304", "stainless316", "stainless310",
-    ]),
     (re.compile(r"탄소강|steel|강철|스틸"), ["carbonSteel", "lowCarbonSteel", "alloySteel"]),
     (re.compile(r"알루미늄|알미늄|aluminum|aluminium"), ["al6061", "al7075", "al5052", "al1050"]),
     (re.compile(r"무산소동|ofhc"), ["oxygenFreeCopper", "ofeCopper"]),
@@ -271,8 +268,19 @@ def extract_material_hints_by_name(text):
     return hints_by_name
 
 
+_STAINLESS_PATTERN = re.compile(r"스테인|stainless")
+
+
 def guess_material_key(material_text, density_g_cm3):
     text = (material_text or "").strip()
+
+    # 스테인리스는 모델링 프로그램에 정확한 등급이 없어 다른 등급으로 저장되는 경우가 많고,
+    # 등급 표기 방식도 제각각이라 텍스트만으로 신뢰하기 어렵습니다. 그래서 STEP에
+    # "스테인리스/stainless"라고만 적혀 있으면 무조건 가장 흔한 304로 지정합니다. 316 등 다른
+    # 등급이 필요하면 하중 계산 화면에서 직접 다시 지정하면 됩니다.
+    if _STAINLESS_PATTERN.search(text):
+        return "stainless304"
+
     keyword_candidates = None
 
     for pattern, candidates in MATERIAL_KEYWORD_GROUPS:
@@ -401,11 +409,14 @@ def analyze_with_opencascade(file_path, file_name, file_size_bytes):
 
     part_map = {}
     total_bounds = None
+    total_shape_count = len(shapes_labels_colors)
+    skipped_shape_names = []
 
     for index, (shape, (label_name, _color)) in enumerate(shapes_labels_colors.items()):
         volume_mm3 = shape_volume_mm3(shape)
 
         if volume_mm3 <= 0:
+            skipped_shape_names.append(safe_name(label_name, f"Unnamed part {index + 1}"))
             continue
 
         bounds = shape_bbox(shape)
@@ -479,6 +490,15 @@ def analyze_with_opencascade(file_path, file_name, file_size_bytes):
         "Volumes are computed from BRepGProp VolumeProperties in mm^3.",
     ]
 
+    if skipped_shape_names:
+        sample = ", ".join(f"'{name}'" for name in skipped_shape_names[:8])
+        more = f" 외 {len(skipped_shape_names) - 8}개" if len(skipped_shape_names) > 8 else ""
+        notes.append(
+            f"⚠ 형상 {total_shape_count}개 중 {len(skipped_shape_names)}개는 체적을 계산할 수 없어(면/셸 "
+            f"형태이거나 솔리드가 아님) 하중 계산에서 제외되었습니다. 실제 무게보다 가볍게 나올 수 있으니 "
+            f"주의하세요: {sample}{more}"
+        )
+
     if volume_fill_ratio is not None:
         notes.append(f"Bounding-box fill ratio is {volume_fill_ratio * 100:.1f}%.")
 
@@ -500,6 +520,8 @@ def analyze_with_opencascade(file_path, file_name, file_size_bytes):
         "modelBoundingBox": bbox_to_string(total_bounds),
         "modelBoundingBoxVolumeM3": bbox_volume_m3 if bbox_volume_m3 > 0 else None,
         "modelVolumeFillRatio": volume_fill_ratio,
+        "modelSkippedShapeCount": len(skipped_shape_names),
+        "modelTotalShapeCount": total_shape_count,
         "modelStatus": "OpenCascade analysis complete"
         if part_items
         else "OpenCascade analysis found no solid bodies",

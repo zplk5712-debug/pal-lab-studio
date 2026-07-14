@@ -1,7 +1,8 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { parseStepPartsForViewer } from "./loadAssemblyGeometry";
 import { getMaterialOption } from "./loadCalculatorUtils";
 
@@ -23,6 +24,83 @@ const MATERIAL_COLOR_PALETTE = [
   "#fda4af", // rose
   "#67e8f9", // cyan
 ];
+
+// 정면/측면/후면/평면 등 버튼 클릭 한 번으로 카메라를 표준 방향으로 옮기기 위한 설정입니다.
+// (dirX, dirY, dirZ)는 대상 중심에서 카메라가 위치할 방향(단위 벡터 배수는 size로 조절),
+// up은 그 방향에서 봤을 때 화면 위쪽이 되는 축입니다.
+const VIEW_PRESETS = {
+  front: { label: "정면", dir: [0, 0, 1], up: [0, 1, 0] },
+  back: { label: "후면", dir: [0, 0, -1], up: [0, 1, 0] },
+  left: { label: "좌측면", dir: [-1, 0, 0], up: [0, 1, 0] },
+  right: { label: "우측면", dir: [1, 0, 0], up: [0, 1, 0] },
+  top: { label: "평면", dir: [0, 1, 0], up: [0, 0, -1] },
+  bottom: { label: "저면", dir: [0, -1, 0], up: [0, 0, 1] },
+};
+
+// 지금 보고 있는 화면을 그대로 시계/반시계 방향으로 90도 돌립니다(카메라 위치·바라보는
+// 방향은 그대로 두고, 화면에 대해 수직인 축=카메라가 바라보는 축을 기준으로 회전).
+// 다른 각도로 옮기는 게 아니라 "지금 보이는 이미지를 90도 회전"하는 동작입니다.
+function rollCamera(camera, target, degrees) {
+  const viewDirection = target.clone().sub(camera.position).normalize();
+  const rad = THREE.MathUtils.degToRad(degrees);
+
+  camera.up.applyAxisAngle(viewDirection, rad);
+  camera.lookAt(target);
+}
+
+function ViewController({ bbox, request, controlsRef }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (!bbox || !request) {
+      return;
+    }
+
+    const target = controlsRef.current
+      ? controlsRef.current.target.clone()
+      : new THREE.Vector3((bbox.x[0] + bbox.x[1]) / 2, (bbox.y[0] + bbox.y[1]) / 2, (bbox.z[0] + bbox.z[1]) / 2);
+
+    if (request.type === "roll") {
+      rollCamera(camera, target, request.deg);
+      camera.updateProjectionMatrix();
+
+      if (controlsRef.current) {
+        controlsRef.current.update();
+      }
+
+      return;
+    }
+
+    const preset = VIEW_PRESETS[request.dir];
+
+    if (!preset) {
+      return;
+    }
+
+    const cx = (bbox.x[0] + bbox.x[1]) / 2;
+    const cy = (bbox.y[0] + bbox.y[1]) / 2;
+    const cz = (bbox.z[0] + bbox.z[1]) / 2;
+    const size = Math.max(bbox.x[1] - bbox.x[0], bbox.y[1] - bbox.y[0], bbox.z[1] - bbox.z[0]) || 1;
+    const distance = size * 2;
+
+    camera.position.set(
+      cx + preset.dir[0] * distance,
+      cy + preset.dir[1] * distance,
+      cz + preset.dir[2] * distance,
+    );
+    camera.up.set(preset.up[0], preset.up[1], preset.up[2]);
+    camera.lookAt(cx, cy, cz);
+    camera.updateProjectionMatrix();
+
+    if (controlsRef.current) {
+      controlsRef.current.target.set(cx, cy, cz);
+      controlsRef.current.update();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request]);
+
+  return null;
+}
 
 function AutoCamera({ bbox }) {
   const { camera } = useThree();
@@ -80,6 +158,105 @@ const PartMesh = memo(
     prev.part === next.part && prev.isSelected === next.isSelected && prev.baseColor === next.baseColor,
 );
 
+// 선택되지 않은 부품이 몇백 개라도 화면에는 메쉬 1개(드로우콜 1번)로 그리기 위해,
+// 부품별 지오메트리를 정점 색상(vertex color)을 붙여 하나로 합칩니다. 클릭한 삼각형
+// 번호(faceIndex)로 어떤 부품인지 되찾을 수 있도록 부품별 삼각형 범위도 함께 만듭니다.
+function buildMergedBase(parts, colorForPart) {
+  if (parts.length === 0) {
+    return null;
+  }
+
+  const geometries = [];
+  const ranges = [];
+  let faceCursor = 0;
+
+  parts.forEach((part) => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(part.positions, 3));
+    geo.setIndex(new THREE.BufferAttribute(part.index, 1));
+
+    const color = new THREE.Color(colorForPart(part));
+    const colors = new Float32Array(part.positions.length);
+
+    for (let i = 0; i < colors.length; i += 3) {
+      colors[i] = color.r;
+      colors[i + 1] = color.g;
+      colors[i + 2] = color.b;
+    }
+
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    geometries.push(geo);
+
+    const faceCount = part.index.length / 3;
+    faceCursor += faceCount;
+    ranges.push({ end: faceCursor, name: part.name });
+  });
+
+  const merged = mergeGeometries(geometries, false);
+
+  if (!merged) {
+    return null;
+  }
+
+  merged.computeVertexNormals();
+  merged.computeBoundingSphere();
+
+  return { geometry: merged, ranges };
+}
+
+function findPartNameForFace(faceIndex, ranges) {
+  let low = 0;
+  let high = ranges.length - 1;
+
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+
+    if (faceIndex < ranges[mid].end) {
+      if (mid === 0 || faceIndex >= ranges[mid - 1].end) {
+        return ranges[mid].name;
+      }
+
+      high = mid - 1;
+    } else {
+      low = mid + 1;
+    }
+  }
+
+  return null;
+}
+
+const MergedBaseMesh = memo(
+  function MergedBaseMesh({ parts, colorForPart, onToggle }) {
+    const merged = useMemo(() => buildMergedBase(parts, colorForPart), [parts, colorForPart]);
+
+    if (!merged) {
+      return null;
+    }
+
+    return (
+      <mesh
+        geometry={merged.geometry}
+        onClick={(event) => {
+          event.stopPropagation();
+
+          if (event.faceIndex == null) {
+            return;
+          }
+
+          const name = findPartNameForFace(event.faceIndex, merged.ranges);
+
+          if (name) {
+            onToggle(name);
+          }
+        }}
+      >
+        <meshStandardMaterial vertexColors side={THREE.DoubleSide} />
+      </mesh>
+    );
+  },
+  (prev, next) => prev.parts === next.parts && prev.colorForPart === next.colorForPart,
+);
+
 function buildMaterialColorMap(partMaterialKeys) {
   const map = new Map();
   const uniqueKeys = [...new Set(Object.values(partMaterialKeys))];
@@ -117,10 +294,28 @@ function LoadModelViewer({ file, selectedNames, onToggleSelect, partMaterialKeys
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [parsed, setParsed] = useState(null);
+  const [viewRequest, setViewRequest] = useState(null);
+  const controlsRef = useRef(null);
 
   const materialColorByKey = useMemo(
     () => buildMaterialColorMap(partMaterialKeys),
     [partMaterialKeys],
+  );
+
+  const colorForPart = useMemo(
+    () => (part) => materialColorByKey.get(partMaterialKeys[part.name]) || UNASSIGNED_COLOR,
+    [materialColorByKey, partMaterialKeys],
+  );
+
+  // 선택되지 않은(대다수) 부품은 메쉬 1개로 합쳐서 그리고, 선택된(보통 소수) 부품만
+  // 개별 메쉬로 그려 강조 표시합니다. 조립품 부품이 몇백 개여도 회전이 매끄럽게 유지됩니다.
+  const baseParts = useMemo(
+    () => (parsed ? parsed.parts.filter((part) => !selectedNames.has(part.name)) : []),
+    [parsed, selectedNames],
+  );
+  const selectedParts = useMemo(
+    () => (parsed ? parsed.parts.filter((part) => selectedNames.has(part.name)) : []),
+    [parsed, selectedNames],
   );
 
   useEffect(() => {
@@ -193,17 +388,44 @@ function LoadModelViewer({ file, selectedNames, onToggleSelect, partMaterialKeys
         <directionalLight position={[10, 10, 10]} intensity={0.8} />
         <directionalLight position={[-10, -5, -10]} intensity={0.3} />
         <AutoCamera bbox={parsed.bbox} />
-        {parsed.parts.map((part, index) => (
+        <ViewController bbox={parsed.bbox} request={viewRequest} controlsRef={controlsRef} />
+        <MergedBaseMesh parts={baseParts} colorForPart={colorForPart} onToggle={onToggleSelect} />
+        {selectedParts.map((part, index) => (
           <PartMesh
             key={`${part.name}-${index}`}
             part={part}
-            isSelected={selectedNames.has(part.name)}
+            isSelected
             onToggle={onToggleSelect}
-            baseColor={materialColorByKey.get(partMaterialKeys[part.name]) || UNASSIGNED_COLOR}
+            baseColor={colorForPart(part)}
           />
         ))}
-        <OrbitControls makeDefault />
+        <OrbitControls ref={controlsRef} makeDefault />
       </Canvas>
+      <div className="load-model-viewer-view-buttons">
+        {Object.entries(VIEW_PRESETS).map(([key, preset]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setViewRequest({ type: "preset", dir: key, nonce: Date.now() })}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+      <div className="load-model-viewer-view-buttons">
+        <button
+          type="button"
+          onClick={() => setViewRequest({ type: "roll", deg: -90, nonce: Date.now() })}
+        >
+          ↺ 화면 90° 회전
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewRequest({ type: "roll", deg: 90, nonce: Date.now() })}
+        >
+          ↻ 화면 90° 회전
+        </button>
+      </div>
       <MaterialLegend partMaterialKeys={partMaterialKeys} materialColorByKey={materialColorByKey} />
       <p className="load-model-viewer__hint">
         형상을 클릭하면 부품이 선택됩니다 (여러 개 선택 가능, 다시 클릭하면 해제). 색상은 적용된

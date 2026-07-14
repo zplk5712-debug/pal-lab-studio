@@ -14,6 +14,9 @@ export const MODEL_FILE_EXTENSIONS = [".step", ".stp"];
 export const MAX_MODEL_FILE_SIZE_MB = 50;
 export const MAX_MODEL_FILE_SIZE_BYTES = MAX_MODEL_FILE_SIZE_MB * 1024 * 1024;
 
+// 조립품의 공통 소재 선택칸에서 "아직 특정 소재를 고르지 않음(부품별로 다양함)"을 나타내는 값입니다.
+export const MIXED_MATERIAL_KEY = "__mixed__";
+
 export const SHAPE_OPTIONS = [
   {
     value: "box",
