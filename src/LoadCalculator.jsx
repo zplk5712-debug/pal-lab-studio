@@ -271,6 +271,9 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                       : parsed.modelPartItems,
                   modelFileObject: file,
                   modelSelectedPartNames: [],
+                  modelSkippedParts: Array.isArray(parsed.modelSkippedParts)
+                    ? parsed.modelSkippedParts
+                    : [],
                 };
               })()
             : item,
@@ -311,6 +314,7 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                 modelShowPartDetails: false,
                 modelFileObject: null,
                 modelSelectedPartNames: [],
+                modelSkippedParts: [],
               }
             : item,
         ),
@@ -783,6 +787,24 @@ export default function LoadCalculator({ onBack, onSendToMotor }) {
                             <ul>
                               {item.modelNotes.map((note) => (
                                 <li key={`${item.id}-${note}`}>{note}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+
+                        {Array.isArray(item.modelSkippedParts) && item.modelSkippedParts.length > 0 ? (
+                          <div className="note-box load-model-skipped">
+                            <h3>인식 안 된 부품 {item.modelSkippedParts.length}개</h3>
+                            <p className="field-help">
+                              아래 부품은 하중 계산에서 빠졌습니다. 그만큼 총 무게가 실제보다 가볍게
+                              나올 수 있습니다.
+                            </p>
+                            <ul>
+                              {item.modelSkippedParts.map((skipped) => (
+                                <li key={`${item.id}-skip-${skipped.name}`}>
+                                  <strong>{skipped.name}</strong>
+                                  {skipped.reason ? ` — ${skipped.reason}` : null}
+                                </li>
                               ))}
                             </ul>
                           </div>

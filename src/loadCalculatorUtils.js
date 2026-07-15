@@ -694,6 +694,8 @@ export async function readModelFile(file) {
       modelAssemblyType: parsed.assemblyType,
       modelPartCount: parsed.partCount,
       modelPartItems: parsed.partItems,
+      // 브라우저 로컬 해석은 체적을 개별 계산하지 않아 인식 실패 부품을 판별할 수 없습니다.
+      modelSkippedParts: [],
     };
   }
 

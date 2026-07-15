@@ -3927,6 +3927,33 @@
   gap: 4px;
 }
 
+.load-model-skipped {
+  display: grid;
+  gap: 6px;
+  border-color: rgba(251, 191, 36, 0.45) !important;
+  background: rgba(69, 39, 6, 0.5) !important;
+}
+
+.load-model-skipped h3 {
+  color: #fcd34d;
+}
+
+.load-model-skipped ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.load-model-skipped li {
+  color: rgba(254, 243, 199, 0.95);
+  font-size: 14px;
+}
+
+.load-model-skipped li strong {
+  color: #fde68a;
+}
+
 .load-volume-check {
   display: grid;
   gap: 4px;

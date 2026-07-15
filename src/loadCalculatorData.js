@@ -235,4 +235,5 @@ export const DEFAULT_LOAD_FORM = {
   modelShowPartDetails: false,
   modelFileObject: null,
   modelSelectedPartNames: [],
+  modelSkippedParts: [],
 };

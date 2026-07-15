@@ -172,6 +172,76 @@ def _normalize_part_name(name):
     return re.sub(r"\s+", " ", normalized)
 
 
+def count_assembly_leaf_parts(text):
+    """STEP의 NEXT_ASSEMBLY_USAGE_OCCURRENCE 트리를 따라가서, 자식이 없는 말단(leaf)
+    부품의 이름과 인스턴스 수를 셉니다. 반환값: { part_name: count }.
+    조립도에 '있어야 하는' 부품 목록을 얻어, OCC가 실제로 불러온 솔리드와 대조하는 용도입니다."""
+    entities = _parse_step_entities(text)
+
+    formation_of_definition = {}
+    product_of_formation = {}
+    name_of_product = {}
+    edges = []
+
+    for entity_id, (entity_type, args) in entities.items():
+        if entity_type == "PRODUCT_DEFINITION":
+            refs = _extract_refs(args)
+            if refs:
+                formation_of_definition[entity_id] = refs[0]
+        elif entity_type in (
+            "PRODUCT_DEFINITION_FORMATION",
+            "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE",
+        ):
+            refs = _extract_refs(args)
+            if refs:
+                product_of_formation[entity_id] = refs[0]
+        elif entity_type == "PRODUCT":
+            strings = _extract_quoted_strings(args)
+            raw = (strings[1] if len(strings) > 1 else (strings[0] if strings else "")).strip()
+            name = decode_step_text(raw)
+            if name:
+                name_of_product[entity_id] = name
+        elif entity_type == "NEXT_ASSEMBLY_USAGE_OCCURRENCE":
+            refs = _extract_refs(args)
+            if len(refs) >= 2:
+                edges.append((refs[0], refs[1]))
+
+    children_by_parent = {}
+    related_ids = set()
+    for relating, related in edges:
+        children_by_parent.setdefault(relating, []).append(related)
+        related_ids.add(related)
+
+    def resolve_name(definition_id):
+        formation_id = formation_of_definition.get(definition_id)
+        if formation_id is None:
+            return None
+        product_id = product_of_formation.get(formation_id)
+        if product_id is None:
+            return None
+        return name_of_product.get(product_id)
+
+    counts = {}
+
+    def walk(definition_id, depth):
+        if depth > 25:
+            return
+        children = children_by_parent.get(definition_id)
+        if not children:
+            name = resolve_name(definition_id)
+            if name:
+                counts[name] = counts.get(name, 0) + 1
+            return
+        for child in children:
+            walk(child, depth + 1)
+
+    roots = [d for d in formation_of_definition if d not in related_ids]
+    for root in roots:
+        walk(root, 0)
+
+    return counts
+
+
 def extract_material_hints_by_name(text):
     """STEP 텍스트에서 부품별 소재명/밀도 힌트를 추출합니다.
     반환값: { normalized_part_name: {"materialText": str, "densityGCm3": float|None} }
@@ -410,13 +480,25 @@ def analyze_with_opencascade(file_path, file_name, file_size_bytes):
     part_map = {}
     total_bounds = None
     total_shape_count = len(shapes_labels_colors)
-    skipped_shape_names = []
+    # 인식 안 된 부품을 {이름, 사유}로 모읍니다. 정규화 이름으로 중복을 걸러냅니다.
+    skipped_parts = []
+    skipped_norm_names = set()
+
+    def add_skipped(name, reason):
+        norm = _normalize_part_name(name)
+        if norm in skipped_norm_names:
+            return
+        skipped_norm_names.add(norm)
+        skipped_parts.append({"name": name, "reason": reason})
 
     for index, (shape, (label_name, _color)) in enumerate(shapes_labels_colors.items()):
         volume_mm3 = shape_volume_mm3(shape)
 
         if volume_mm3 <= 0:
-            skipped_shape_names.append(safe_name(label_name, f"Unnamed part {index + 1}"))
+            add_skipped(
+                safe_name(label_name, f"Unnamed part {index + 1}"),
+                "솔리드가 아니어서 체적을 계산할 수 없습니다 (면·셸·와이어 형태).",
+            )
             continue
 
         bounds = shape_bbox(shape)
@@ -485,18 +567,29 @@ def analyze_with_opencascade(file_path, file_name, file_size_bytes):
         else "single"
     )
 
+    # 조립도 트리에는 있으나 OCC가 솔리드로 불러오지 못한 부품을 찾아냅니다.
+    # (예: 참조/빈 노드이거나, OCC가 형상을 열지 못한 경우 — 하중 계산에서 통째로 빠짐)
+    recognized_norm_names = {_normalize_part_name(name) for name in part_map}
+    if raw_text:
+        for tree_name in count_assembly_leaf_parts(raw_text):
+            norm = _normalize_part_name(tree_name)
+            if norm and norm not in recognized_norm_names:
+                add_skipped(
+                    tree_name,
+                    "조립도에는 있으나 솔리드 형상을 불러오지 못했습니다.",
+                )
+
     notes = [
         "OpenCascade(pythonocc-core) solid analysis completed on the remote analyzer.",
         "Volumes are computed from BRepGProp VolumeProperties in mm^3.",
     ]
 
-    if skipped_shape_names:
-        sample = ", ".join(f"'{name}'" for name in skipped_shape_names[:8])
-        more = f" 외 {len(skipped_shape_names) - 8}개" if len(skipped_shape_names) > 8 else ""
+    if skipped_parts:
+        sample = ", ".join(f"'{p['name']}'" for p in skipped_parts[:8])
+        more = f" 외 {len(skipped_parts) - 8}개" if len(skipped_parts) > 8 else ""
         notes.append(
-            f"⚠ 형상 {total_shape_count}개 중 {len(skipped_shape_names)}개는 체적을 계산할 수 없어(면/셸 "
-            f"형태이거나 솔리드가 아님) 하중 계산에서 제외되었습니다. 실제 무게보다 가볍게 나올 수 있으니 "
-            f"주의하세요: {sample}{more}"
+            f"⚠ 부품 {len(skipped_parts)}개가 하중 계산에서 제외되었습니다(체적을 계산할 수 없거나 "
+            f"형상을 불러오지 못함). 실제 무게보다 가볍게 나올 수 있으니 주의하세요: {sample}{more}"
         )
 
     if volume_fill_ratio is not None:
@@ -520,7 +613,8 @@ def analyze_with_opencascade(file_path, file_name, file_size_bytes):
         "modelBoundingBox": bbox_to_string(total_bounds),
         "modelBoundingBoxVolumeM3": bbox_volume_m3 if bbox_volume_m3 > 0 else None,
         "modelVolumeFillRatio": volume_fill_ratio,
-        "modelSkippedShapeCount": len(skipped_shape_names),
+        "modelSkippedParts": skipped_parts,
+        "modelSkippedShapeCount": len(skipped_parts),
         "modelTotalShapeCount": total_shape_count,
         "modelStatus": "OpenCascade analysis complete"
         if part_items
