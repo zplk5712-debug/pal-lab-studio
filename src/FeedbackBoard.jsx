@@ -3,6 +3,42 @@ import { supabase } from "./supabaseClient";
 
 const TABLE = "feedback";
 const COMMENTS_TABLE = "comments";
+const STORAGE_KEY = "feedback-board-posts";
+const COMMENTS_STORAGE_KEY = "feedback-board-comments";
+
+function getLocalPosts() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalPosts(posts) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  } catch {
+    console.warn("Failed to save posts to localStorage");
+  }
+}
+
+function getLocalComments() {
+  try {
+    const stored = localStorage.getItem(COMMENTS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalComments(comments) {
+  try {
+    localStorage.setItem(COMMENTS_STORAGE_KEY, JSON.stringify(comments));
+  } catch {
+    console.warn("Failed to save comments to localStorage");
+  }
+}
 
 export default function FeedbackBoard({ onBack }) {
   const [posts, setPosts] = useState([]);
@@ -12,6 +48,7 @@ export default function FeedbackBoard({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [isOnline, setIsOnline] = useState(!!supabase);
 
   const [commentDrafts, setCommentDrafts] = useState({});
   const [commentSubmittingId, setCommentSubmittingId] = useState(null);
@@ -21,74 +58,123 @@ export default function FeedbackBoard({ onBack }) {
   }, []);
 
   async function loadPosts() {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
-    const { data, error: loadError } = await supabase
-      .from(TABLE)
-      .select("id, nickname, message, created_at")
-      .order("created_at", { ascending: false })
-      .limit(50);
+    setError(null);
 
-    if (loadError) {
-      setError("의견을 불러오지 못했습니다.");
-      setLoading(false);
-      return;
+    if (supabase) {
+      try {
+        const { data, error: loadError } = await supabase
+          .from(TABLE)
+          .select("id, nickname, message, created_at")
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (loadError) {
+          throw new Error(loadError.message);
+        }
+
+        setPosts(data ?? []);
+        saveLocalPosts(data ?? []);
+        setIsOnline(true);
+        await loadComments((data ?? []).map((post) => post.id));
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.warn("Supabase load failed, falling back to localStorage:", err);
+        setIsOnline(false);
+      }
     }
 
-    setPosts(data ?? []);
-    setError(null);
-    await loadComments((data ?? []).map((post) => post.id));
+    // Fallback to localStorage
+    const localPosts = getLocalPosts();
+    setPosts(localPosts);
+    const localComments = getLocalComments();
+    setCommentsByPost(localComments);
     setLoading(false);
   }
 
   async function loadComments(postIds) {
-    if (!supabase || postIds.length === 0) {
+    if (postIds.length === 0) {
       setCommentsByPost({});
       return;
     }
 
-    const { data, error: loadError } = await supabase
-      .from(COMMENTS_TABLE)
-      .select("id, post_id, nickname, message, created_at")
-      .in("post_id", postIds)
-      .order("created_at", { ascending: true });
+    if (supabase) {
+      try {
+        const { data, error: loadError } = await supabase
+          .from(COMMENTS_TABLE)
+          .select("id, post_id, nickname, message, created_at")
+          .in("post_id", postIds)
+          .order("created_at", { ascending: true });
 
-    if (loadError) {
-      return;
+        if (loadError) {
+          throw new Error(loadError.message);
+        }
+
+        const grouped = {};
+        (data ?? []).forEach((comment) => {
+          if (!grouped[comment.post_id]) {
+            grouped[comment.post_id] = [];
+          }
+          grouped[comment.post_id].push(comment);
+        });
+        setCommentsByPost(grouped);
+        saveLocalComments(grouped);
+        return;
+      } catch (err) {
+        console.warn("Failed to load comments from Supabase:", err);
+      }
     }
 
-    const grouped = {};
-    (data ?? []).forEach((comment) => {
-      if (!grouped[comment.post_id]) {
-        grouped[comment.post_id] = [];
-      }
-      grouped[comment.post_id].push(comment);
-    });
-    setCommentsByPost(grouped);
+    // Fallback to localStorage
+    const localComments = getLocalComments();
+    setCommentsByPost(localComments);
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!supabase || !message.trim() || submitting) {
+    if (!message.trim() || submitting) {
       return;
     }
 
     setSubmitting(true);
-    const { error: insertError } = await supabase.from(TABLE).insert({
+    setError(null);
+
+    const newPost = {
+      id: `local-${Date.now()}`,
       nickname: nickname.trim() || "익명",
       message: message.trim(),
-    });
+      created_at: new Date().toISOString(),
+    };
 
-    if (insertError) {
-      setError("의견 등록에 실패했습니다. 잠시 후 다시 시도해주세요.");
-    } else {
-      setMessage("");
-      setError(null);
-      await loadPosts();
+    if (supabase) {
+      try {
+        const { error: insertError } = await supabase.from(TABLE).insert({
+          nickname: newPost.nickname,
+          message: newPost.message,
+        });
+
+        if (insertError) {
+          throw new Error(insertError.message);
+        }
+
+        setMessage("");
+        setNickname("");
+        await loadPosts();
+        setSubmitting(false);
+        return;
+      } catch (err) {
+        console.warn("Failed to submit to Supabase, saving locally:", err);
+      }
     }
+
+    // Fallback: save to localStorage
+    const localPosts = getLocalPosts();
+    const updated = [newPost, ...localPosts];
+    saveLocalPosts(updated);
+    setPosts(updated);
+    setMessage("");
+    setNickname("");
     setSubmitting(false);
   }
 
@@ -103,21 +189,50 @@ export default function FeedbackBoard({ onBack }) {
     event.preventDefault();
     const draft = commentDrafts[postId] || {};
     const draftMessage = (draft.message || "").trim();
-    if (!supabase || !draftMessage || commentSubmittingId === postId) {
+    if (!draftMessage || commentSubmittingId === postId) {
       return;
     }
 
     setCommentSubmittingId(postId);
-    const { error: insertError } = await supabase.from(COMMENTS_TABLE).insert({
+
+    const newComment = {
+      id: `local-comment-${Date.now()}`,
       post_id: postId,
       nickname: (draft.nickname || "").trim() || "익명",
       message: draftMessage,
-    });
+      created_at: new Date().toISOString(),
+    };
 
-    if (!insertError) {
-      setCommentDrafts((current) => ({ ...current, [postId]: { nickname: draft.nickname, message: "" } }));
-      await loadComments(posts.map((post) => post.id));
+    if (supabase) {
+      try {
+        const { error: insertError } = await supabase.from(COMMENTS_TABLE).insert({
+          post_id: postId,
+          nickname: newComment.nickname,
+          message: newComment.message,
+        });
+
+        if (insertError) {
+          throw new Error(insertError.message);
+        }
+
+        setCommentDrafts((current) => ({ ...current, [postId]: { nickname: draft.nickname, message: "" } }));
+        await loadComments(posts.map((post) => post.id));
+        setCommentSubmittingId(null);
+        return;
+      } catch (err) {
+        console.warn("Failed to submit comment to Supabase, saving locally:", err);
+      }
     }
+
+    // Fallback: save to localStorage
+    const localComments = getLocalComments();
+    if (!localComments[postId]) {
+      localComments[postId] = [];
+    }
+    localComments[postId].push(newComment);
+    saveLocalComments(localComments);
+    setCommentsByPost(localComments);
+    setCommentDrafts((current) => ({ ...current, [postId]: { nickname: draft.nickname, message: "" } }));
     setCommentSubmittingId(null);
   }
 
@@ -145,7 +260,7 @@ export default function FeedbackBoard({ onBack }) {
       </header>
 
       <div className="board-page">
-        {!supabase ? (
+        {!supabase && posts.length === 0 ? (
           <div className="home-panel home-board-panel">
             <p className="home-board-title">사용 후기 게시판</p>
             <div className="home-board-notice">
