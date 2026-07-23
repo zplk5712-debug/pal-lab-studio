@@ -1,8 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import CapacityGate from "./CapacityGate";
+import { initSession, deleteSession, getActiveUserCount } from "./sessionManager";
 
 // 코드 분할 — 각 모듈은 해당 탭을 열 때만 로드됨 (단, 카드에 마우스를 올리면 미리 받아둠)
 const loadMotorSimulator         = () => import("./MotorSimulator");
 const loadLoadCalculator         = () => import("./LoadCalculator");
+const loadVacuumCalculator       = () => import("./VacuumCalculator");
 const loadProductDatabaseManager = () => import("./ProductDatabaseManager");
 const loadThermalAnalyzer        = () => import("./ThermalAnalyzer");
 const loadProgramDesigner        = () => import("./ProgramDesigner");
@@ -11,6 +14,7 @@ const loadDocumentConverter      = () => import("./DocumentConverter");
 
 const MotorSimulator         = lazy(loadMotorSimulator);
 const LoadCalculator         = lazy(loadLoadCalculator);
+const VacuumCalculator       = lazy(loadVacuumCalculator);
 const ProductDatabaseManager = lazy(loadProductDatabaseManager);
 const ThermalAnalyzer        = lazy(loadThermalAnalyzer);
 const ProgramDesigner        = lazy(loadProgramDesigner);
@@ -20,6 +24,7 @@ const DocumentConverter      = lazy(loadDocumentConverter);
 const PAGE_PRELOADERS = {
   motor: loadMotorSimulator,
   load: loadLoadCalculator,
+  vacuum: loadVacuumCalculator,
   db: loadProductDatabaseManager,
   thermal: loadThermalAnalyzer,
   "ai-assistant": loadProgramDesigner,
@@ -194,6 +199,14 @@ const TOOLS = [
     actionLabel: "열기",
   },
   {
+    id: "vacuum",
+    title: "진공 계산",
+    description: "STEP 파일을 분석해 진공 경계면 표면적을 계산하고, 초고진공 달성을 위한 러핑·터보·이온펌프 세트와 배이킹 프로세스를 설계합니다.",
+    status: "사용 가능",
+    caption: "Vacuum Calculator",
+    actionLabel: "열기",
+  },
+  {
     id: "thermal",
     title: "열해석",
     description: "STL 파일을 업로드하면 FEM(유한요소법)으로 정상상태 온도 분포를 계산하고 3D로 시각화합니다.",
@@ -229,6 +242,7 @@ const TOOLS = [
 
 export default function App() {
   const [page, setPage] = useState("home");
+  const [capacityStatus, setCapacityStatus] = useState({ state: "checking", activeCount: 0 });
   const [motorPrefill, setMotorPrefill] = useState(null);
   const [selectedMotorForCatalog, setSelectedMotorForCatalog] = useState(null);
   const [databaseReady, setDatabaseReady] = useState(false);
@@ -245,6 +259,37 @@ export default function App() {
       ...current,
       [key]: typeof updater === "function" ? updater(current[key]) : updater,
     }));
+  }
+
+  // 동시 접속 인원 제한 — 세션 등록 후 정원 초과면 대기 화면으로 전환
+  useEffect(() => {
+    let cancelled = false;
+
+    initSession().then(({ activeCount, canAccess }) => {
+      if (cancelled) return;
+      setCapacityStatus({ state: canAccess ? "ok" : "blocked", activeCount });
+    });
+
+    function handleUnload() {
+      deleteSession();
+    }
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("beforeunload", handleUnload);
+      deleteSession();
+    };
+  }, []);
+
+  async function recheckCapacity() {
+    const { activeCount, canAccess } = await getActiveUserCount();
+    if (canAccess) {
+      const result = await initSession();
+      setCapacityStatus({ state: result.canAccess ? "ok" : "blocked", activeCount: result.activeCount });
+    } else {
+      setCapacityStatus({ state: "blocked", activeCount });
+    }
   }
 
   // 홈 화면이 자리잡은 뒤 유휴 시간에 모든 도구 코드를 미리 받아둠
@@ -308,6 +353,10 @@ export default function App() {
     });
   }, [databaseReady, productDatabases]);
 
+  if (capacityStatus.state === "blocked") {
+    return <CapacityGate activeCount={capacityStatus.activeCount} onRetry={recheckCapacity} />;
+  }
+
   if (page === "motor") {
     return (
       <Suspense fallback={<PageLoader />}>
@@ -330,6 +379,14 @@ export default function App() {
           onBack={() => setPage("home")}
           onSendToMotor={(payload) => { setMotorPrefill(payload); setPage("motor"); }}
         />
+      </Suspense>
+    );
+  }
+
+  if (page === "vacuum") {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <VacuumCalculator onBack={() => setPage("home")} />
       </Suspense>
     );
   }
@@ -435,8 +492,17 @@ export default function App() {
               <span className="home-mode-tag">ACTIVE</span>
               <span className="home-mode-arrow">→</span>
             </div>
-            <div className="home-mode-item" onClick={() => setPage("thermal")} onMouseEnter={() => preloadPage("thermal")} onFocus={() => preloadPage("thermal")}>
+            <div className="home-mode-item" onClick={() => setPage("vacuum")} onMouseEnter={() => preloadPage("vacuum")} onFocus={() => preloadPage("vacuum")}>
               <span className="home-mode-num">03</span>
+              <span className="home-mode-name">
+                <span className="home-mode-title">진공 계산</span>
+                <span className="home-mode-desc">STEP 업로드 → 진공 경계면 분석, 펌프 세트·배이킹 설계</span>
+              </span>
+              <span className="home-mode-tag">ACTIVE</span>
+              <span className="home-mode-arrow">→</span>
+            </div>
+            <div className="home-mode-item" onClick={() => setPage("thermal")} onMouseEnter={() => preloadPage("thermal")} onFocus={() => preloadPage("thermal")}>
+              <span className="home-mode-num">04</span>
               <span className="home-mode-name">
                 <span className="home-mode-title">열해석</span>
                 <span className="home-mode-desc">STL·STEP 업로드 → FEM 3D 온도 분포 시각화</span>
@@ -445,7 +511,7 @@ export default function App() {
               <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("ai-assistant")} onMouseEnter={() => preloadPage("ai-assistant")} onFocus={() => preloadPage("ai-assistant")}>
-              <span className="home-mode-num">04</span>
+              <span className="home-mode-num">05</span>
               <span className="home-mode-name">
                 <span className="home-mode-title">프로그램 설계소</span>
                 <span className="home-mode-desc">질문에 답하면 실행 가능한 프로토타입 제작</span>
@@ -454,7 +520,7 @@ export default function App() {
               <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("db")} onMouseEnter={() => preloadPage("db")} onFocus={() => preloadPage("db")}>
-              <span className="home-mode-num">05</span>
+              <span className="home-mode-num">06</span>
               <span className="home-mode-name">
                 <span className="home-mode-title">통합 카탈로그 검색</span>
                 <span className="home-mode-desc">모터·감속기·볼스크류·엔코더·진공부품 카탈로그 검색</span>
@@ -463,7 +529,7 @@ export default function App() {
               <span className="home-mode-arrow">→</span>
             </div>
             <div className="home-mode-item" onClick={() => setPage("converter")} onMouseEnter={() => preloadPage("converter")} onFocus={() => preloadPage("converter")}>
-              <span className="home-mode-num">06</span>
+              <span className="home-mode-num">07</span>
               <span className="home-mode-name">
                 <span className="home-mode-title">일괄 문서 변환기</span>
                 <span className="home-mode-desc">이미지·PDF·엑셀·실험 데이터를 한 번에 변환</span>
@@ -534,7 +600,7 @@ export default function App() {
 
         <div className="tool-grid">
           {TOOLS.map((tool, index) => {
-            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "converter";
+            const isActiveTool = tool.id === "motor" || tool.id === "load" || tool.id === "vacuum" || tool.id === "db" || tool.id === "thermal" || tool.id === "ai-assistant" || tool.id === "converter";
 
             return (
               <article
@@ -563,6 +629,11 @@ export default function App() {
                 ) : null}
                 {tool.id === "load" ? (
                   <button type="button" className="ghost-button" onClick={() => setPage("load")}>
+                    {tool.actionLabel}
+                  </button>
+                ) : null}
+                {tool.id === "vacuum" ? (
+                  <button type="button" className="ghost-button" onClick={() => setPage("vacuum")}>
                     {tool.actionLabel}
                   </button>
                 ) : null}
